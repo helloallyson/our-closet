@@ -4,14 +4,14 @@ import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'fir
 
 // ── Your Firebase config (replace with your project values) ──
 const firebaseConfig = {
-  apiKey: "AIzaSyCvstTKnaoIwOV9JnYwTsYBr43e6KXH9Lw",
-  authDomain: "our-closet-d03da.firebaseapp.com",
-  projectId: "our-closet-d03da",
-  storageBucket: "our-closet-d03da.firebasestorage.app",
-  messagingSenderId: "906528990994",
-  appId: "1:906528990994:web:697b87b59aa9495c3bb5cb"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_ID,
+  appId: i
+mport.meta.env.VITE_FIREBASE_APP_ID
 }
-
 const app = initializeApp(firebaseConfig)
 const db = getFirestore(app)
 const storage = getStorage(app)
