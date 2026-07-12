@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc, query, where, orderBy } from 'firebase/firestore'
+import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc, query, where } from 'firebase/firestore'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -15,9 +15,10 @@ const db = getFirestore(app)
 
 export async function loadItems(person) {
   try {
-    const q = query(collection(db, 'closet-items'), where('person', '==', person), orderBy('dateAdded', 'desc'))
+    const q = query(collection(db, 'closet-items'), where('person', '==', person))
     const snapshot = await getDocs(q)
-    return snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+    const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+    return items.sort((a, b) => (b.dateAdded || '').localeCompare(a.dateAdded || ''))
   } catch (e) { console.error('Load items failed:', e); return [] }
 }
 
@@ -36,9 +37,10 @@ export async function deleteItem(itemId, person) {
 
 export async function loadOutfits(person) {
   try {
-    const q = query(collection(db, 'closet-outfits'), where('person', '==', person), orderBy('dateCreated', 'desc'))
+    const q = query(collection(db, 'closet-outfits'), where('person', '==', person))
     const snapshot = await getDocs(q)
-    return snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+    const outfits = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+    return outfits.sort((a, b) => (b.dateCreated || '').localeCompare(a.dateCreated || ''))
   } catch (e) { console.error('Load outfits failed:', e); return [] }
 }
 
