@@ -14,9 +14,7 @@ const COLORS = ['Black', 'White', 'Gray', 'Navy', 'Blue', 'Red', 'Pink', 'Green'
 const SEASONS = ['Spring', 'Summer', 'Fall', 'Winter', 'All-Season']
 const STYLES = ['Casual', 'Formal', 'Business', 'Sporty', 'Bohemian', 'Streetwear', 'Classic', 'Trendy', 'Vintage', 'Loungewear']
 
-function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
-}
+function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7) }
 
 function compressImage(dataUrl, maxWidth = 500) {
   return new Promise((resolve) => {
@@ -42,10 +40,7 @@ async function removeBg(dataUrl) {
       reader.onload = () => resolve(reader.result)
       reader.readAsDataURL(blob)
     })
-  } catch (e) {
-    console.error('Background removal failed:', e)
-    return dataUrl
-  }
+  } catch (e) { console.error('Background removal failed:', e); return dataUrl }
 }
 
 async function aiTagClothing(imageBase64) {
@@ -134,17 +129,84 @@ function CategoryFilter({ selected, onSelect }) {
   )
 }
 
-function ClothingCard({ item, onSelect, selected, onDelete }) {
+// ── Shared form fields component ──
+function ItemForm({ form, setForm, tagInput, setTagInput, addTag, ls, is, ss }) {
+  const toggleSeason = (s) => {
+    setForm(f => ({ ...f, seasons: f.seasons.includes(s) ? f.seasons.filter(x => x !== s) : [...f.seasons, s] }))
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div>
+        <label style={ls}>Name</label>
+        <input style={is} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Black V-Neck Tee" />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div>
+          <label style={ls}>Category</label>
+          <select style={ss} value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
+            {CATEGORIES.filter(c => c !== 'All').map(c => <option key={c}>{c}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={ls}>Color</label>
+          <select style={ss} value={form.color} onChange={e => setForm(f => ({ ...f, color: e.target.value }))}>
+            {COLORS.map(c => <option key={c}>{c}</option>)}
+          </select>
+        </div>
+      </div>
+      <div>
+        <label style={ls}>Style</label>
+        <select style={ss} value={form.style} onChange={e => setForm(f => ({ ...f, style: e.target.value }))}>
+          {STYLES.map(s => <option key={s}>{s}</option>)}
+        </select>
+      </div>
+      <div>
+        <label style={ls}>Seasons</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {SEASONS.map(s => (
+            <button key={s} onClick={() => toggleSeason(s)} style={{
+              padding: '6px 14px', border: '1px solid ' + (form.seasons.includes(s) ? '#2d2926' : '#e0ddd7'),
+              borderRadius: 20, background: form.seasons.includes(s) ? '#2d2926' : '#fff',
+              color: form.seasons.includes(s) ? '#fff' : '#6b665f', fontSize: 12, cursor: 'pointer'
+            }}>{s}</button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <label style={ls}>Tags</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+          {form.tags.map((t, i) => (
+            <span key={i} onClick={() => setForm(f => ({ ...f, tags: f.tags.filter((_, j) => j !== i) }))}
+              style={{ fontSize: 12, padding: '4px 10px', borderRadius: 12, background: '#f0eee9', color: '#2d2926', cursor: 'pointer' }}>
+              {t} x
+            </span>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input style={{ ...is, flex: 1 }} value={tagInput} onChange={e => setTagInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addTag()} placeholder="Add a tag..." />
+          <button onClick={addTag} style={{
+            padding: '10px 16px', border: 'none', borderRadius: 8, background: '#e0ddd7',
+            color: '#2d2926', fontWeight: 600, cursor: 'pointer', fontSize: 13
+          }}>+</button>
+        </div>
+      </div>
+      <div>
+        <label style={ls}>Notes</label>
+        <input style={is} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional notes..." />
+      </div>
+    </div>
+  )
+}
+
+function ClothingCard({ item, onTap, onDelete }) {
   const [showMenu, setShowMenu] = useState(false)
   return (
-    <div onClick={() => onSelect?.(item)} style={{
-      borderRadius: 12, overflow: 'hidden', cursor: onSelect ? 'pointer' : 'default',
-      position: 'relative', border: selected ? '2px solid #2d2926' : '2px solid #f0eee9',
+    <div onClick={() => onTap?.(item)} style={{
+      borderRadius: 12, overflow: 'hidden', cursor: 'pointer',
+      position: 'relative', border: '2px solid #f0eee9',
       background: '#faf9f7', transition: 'all 0.15s'
     }}>
-      {selected && (
-        <div style={{ position: 'absolute', top: 8, right: 8, width: 24, height: 24, borderRadius: 12, background: '#2d2926', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, zIndex: 2 }}>✓</div>
-      )}
       {onDelete && (
         <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 2 }}>
           <button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu) }} style={{
@@ -161,6 +223,12 @@ function ClothingCard({ item, onSelect, selected, onDelete }) {
           )}
         </div>
       )}
+      <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2 }}>
+        <div style={{
+          background: 'rgba(255,255,255,0.85)', borderRadius: 10, padding: '3px 8px',
+          fontSize: 10, color: '#6b665f', fontWeight: 500
+        }}>Tap to edit</div>
+      </div>
       <div style={{ width: '100%', aspectRatio: '3/4', overflow: 'hidden', background: '#eeedea' }}>
         {item.image ? (
           <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -183,6 +251,130 @@ function ClothingCard({ item, onSelect, selected, onDelete }) {
   )
 }
 
+// ── Edit Item View ──
+function EditItemView({ item, person, onSave, onCancel, onDelete }) {
+  const [image, setImage] = useState(item.image || null)
+  const [saving, setSaving] = useState(false)
+  const [retagging, setRetagging] = useState(false)
+  const [form, setForm] = useState({
+    name: item.name || '', category: item.category || 'Other', color: item.color || 'Other',
+    style: item.style || 'Casual', seasons: item.seasons || ['All-Season'],
+    tags: item.tags || [], description: item.description || ''
+  })
+  const [tagInput, setTagInput] = useState('')
+  const fileRef = useRef()
+
+  const addTag = () => {
+    if (tagInput.trim() && !form.tags.includes(tagInput.trim())) {
+      setForm(f => ({ ...f, tags: [...f.tags, tagInput.trim()] }))
+      setTagInput('')
+    }
+  }
+
+  const handleNewPhoto = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = async () => {
+      const compressed = await compressImage(reader.result)
+      setImage(compressed)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleRetag = async () => {
+    if (!image) return
+    setRetagging(true)
+    const tags = await aiTagClothing(image)
+    if (tags && !tags.error) {
+      setForm({
+        name: tags.name || form.name,
+        category: tags.category || form.category,
+        color: tags.color || form.color,
+        style: tags.style || form.style,
+        seasons: tags.seasons || form.seasons,
+        tags: tags.tags || form.tags,
+        description: tags.description || form.description
+      })
+    }
+    setRetagging(false)
+  }
+
+  const handleSave = async () => {
+    if (!form.name || saving) return
+    setSaving(true)
+    try {
+      const updated = { ...item, ...form, image, person, dateAdded: item.dateAdded }
+      await onSave(updated)
+    } finally { setSaving(false) }
+  }
+
+  const ls = { fontSize: 12, fontWeight: 600, color: '#6b665f', marginBottom: 4, display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 }
+  const is = { width: '100%', padding: '10px 12px', border: '1px solid #e0ddd7', borderRadius: 8, fontSize: 14, color: '#2d2926', background: '#faf9f7', boxSizing: 'border-box' }
+  const ss = { ...is, appearance: 'none' }
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <button onClick={onCancel} style={{
+          border: 'none', background: 'none', fontSize: 14, color: '#6b665f',
+          cursor: 'pointer', fontWeight: 600, padding: '4px 0'
+        }}>← Back</button>
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#2d2926' }}>Edit Item</div>
+        <button onClick={() => onDelete(item.id)} style={{
+          border: 'none', background: 'none', fontSize: 13, color: '#c44',
+          cursor: 'pointer', fontWeight: 600
+        }}>Delete</button>
+      </div>
+
+      {/* Image */}
+      <div style={{
+        borderRadius: 16, overflow: 'hidden', marginBottom: 16, background: '#f5f5f5',
+        position: 'relative'
+      }}>
+        {image ? (
+          <img src={image} alt={form.name} style={{ width: '100%', maxHeight: 280, objectFit: 'contain' }} />
+        ) : (
+          <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48 }}>👕</div>
+        )}
+        {retagging && (
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px',
+            background: 'rgba(45,41,38,0.85)', color: '#fff', fontSize: 13, textAlign: 'center'
+          }}><span className="spinner" /> Re-analyzing with AI...</div>
+        )}
+      </div>
+
+      {/* Action buttons */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <button onClick={() => fileRef.current?.click()} style={{
+          flex: 1, padding: '10px', border: '1px solid #e0ddd7', borderRadius: 8,
+          background: '#fff', fontSize: 13, fontWeight: 600, color: '#2d2926', cursor: 'pointer'
+        }}>📸 New Photo</button>
+        <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleNewPhoto} style={{ display: 'none' }} />
+        <button onClick={handleRetag} disabled={!image || retagging} style={{
+          flex: 1, padding: '10px', border: '1px solid #e0ddd7', borderRadius: 8,
+          background: '#fff', fontSize: 13, fontWeight: 600,
+          color: !image || retagging ? '#a09a93' : '#2d2926', cursor: 'pointer'
+        }}>✨ Re-tag with AI</button>
+      </div>
+
+      {/* Form */}
+      <ItemForm form={form} setForm={setForm} tagInput={tagInput} setTagInput={setTagInput} addTag={addTag} ls={ls} is={is} ss={ss} />
+
+      {/* Save */}
+      <button onClick={handleSave} disabled={!form.name || saving} style={{
+        width: '100%', padding: '14px 24px', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 15,
+        cursor: form.name && !saving ? 'pointer' : 'default', marginTop: 16,
+        background: form.name && !saving ? '#2d2926' : '#e0ddd7',
+        color: form.name && !saving ? '#fff' : '#a09a93', transition: 'all 0.2s'
+      }}>{saving ? 'Saving...' : 'Save Changes'}</button>
+    </div>
+  )
+}
+
+// ── Add Item View ──
 function AddItemView({ person, onAdd }) {
   const [image, setImage] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -197,43 +389,38 @@ function AddItemView({ person, onAdd }) {
   const [aiDone, setAiDone] = useState(false)
   const fileRef = useRef()
 
+  const addTag = () => {
+    if (tagInput.trim() && !form.tags.includes(tagInput.trim())) {
+      setForm(f => ({ ...f, tags: [...f.tags, tagInput.trim()] }))
+      setTagInput('')
+    }
+  }
+
   const handleFile = async (e) => {
     const file = e.target.files[0]
     if (!file) return
     const reader = new FileReader()
     reader.onload = async () => {
-      setLoading(true)
-      setAiDone(false)
-
-      // Step 1: Compress
+      setLoading(true); setAiDone(false)
       setStatusMsg('Compressing image...')
       let processed = await compressImage(reader.result)
       setImage(processed)
-
-      // Step 2: Remove background (if enabled)
       if (removeBgEnabled) {
-        setStatusMsg('Removing background... (this may take a moment the first time)')
+        setStatusMsg('Removing background...')
         processed = await removeBg(processed)
         setImage(processed)
       }
-
-      // Step 3: AI tag
       setStatusMsg('AI is analyzing your clothing...')
       const tags = await aiTagClothing(processed)
       if (tags && !tags.error) {
         setForm({
-          name: tags.name || '',
-          category: tags.category || 'Other',
-          color: tags.color || 'Other',
-          style: tags.style || 'Casual',
-          seasons: tags.seasons || ['All-Season'],
-          tags: tags.tags || [],
-          description: tags.description || ''
+          name: tags.name || '', category: tags.category || 'Other', color: tags.color || 'Other',
+          style: tags.style || 'Casual', seasons: tags.seasons || ['All-Season'],
+          tags: tags.tags || [], description: tags.description || ''
         })
         setAiDone(true)
       }
-      setStatusMsg('')
-      setLoading(false)
+      setStatusMsg(''); setLoading(false)
     }
     reader.readAsDataURL(file)
   }
@@ -242,24 +429,12 @@ function AddItemView({ person, onAdd }) {
     if (!form.name || saving) return
     setSaving(true)
     try {
-      const item = { id: generateId(), ...form, image, person, dateAdded: new Date().toISOString() }
-      await onAdd(item)
+      await onAdd({ id: generateId(), ...form, image, person, dateAdded: new Date().toISOString() })
       setImage(null)
       setForm({ name: '', category: 'Tops', color: 'Black', style: 'Casual', seasons: ['All-Season'], tags: [], description: '' })
       setAiDone(false)
       if (fileRef.current) fileRef.current.value = ''
     } finally { setSaving(false) }
-  }
-
-  const toggleSeason = (s) => {
-    setForm(f => ({ ...f, seasons: f.seasons.includes(s) ? f.seasons.filter(x => x !== s) : [...f.seasons, s] }))
-  }
-
-  const addTag = () => {
-    if (tagInput.trim() && !form.tags.includes(tagInput.trim())) {
-      setForm(f => ({ ...f, tags: [...f.tags, tagInput.trim()] }))
-      setTagInput('')
-    }
   }
 
   const ls = { fontSize: 12, fontWeight: 600, color: '#6b665f', marginBottom: 4, display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 }
@@ -323,77 +498,19 @@ function AddItemView({ person, onAdd }) {
       </div>
 
       {/* Form */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div>
-          <label style={ls}>Name</label>
-          <input style={is} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Black V-Neck Tee" />
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div>
-            <label style={ls}>Category</label>
-            <select style={ss} value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
-              {CATEGORIES.filter(c => c !== 'All').map(c => <option key={c}>{c}</option>)}
-            </select>
-          </div>
-          <div>
-            <label style={ls}>Color</label>
-            <select style={ss} value={form.color} onChange={e => setForm(f => ({ ...f, color: e.target.value }))}>
-              {COLORS.map(c => <option key={c}>{c}</option>)}
-            </select>
-          </div>
-        </div>
-        <div>
-          <label style={ls}>Style</label>
-          <select style={ss} value={form.style} onChange={e => setForm(f => ({ ...f, style: e.target.value }))}>
-            {STYLES.map(s => <option key={s}>{s}</option>)}
-          </select>
-        </div>
-        <div>
-          <label style={ls}>Seasons</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {SEASONS.map(s => (
-              <button key={s} onClick={() => toggleSeason(s)} style={{
-                padding: '6px 14px', border: '1px solid ' + (form.seasons.includes(s) ? '#2d2926' : '#e0ddd7'),
-                borderRadius: 20, background: form.seasons.includes(s) ? '#2d2926' : '#fff',
-                color: form.seasons.includes(s) ? '#fff' : '#6b665f', fontSize: 12, cursor: 'pointer'
-              }}>{s}</button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label style={ls}>Tags</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-            {form.tags.map((t, i) => (
-              <span key={i} onClick={() => setForm(f => ({ ...f, tags: f.tags.filter((_, j) => j !== i) }))}
-                style={{ fontSize: 12, padding: '4px 10px', borderRadius: 12, background: '#f0eee9', color: '#2d2926', cursor: 'pointer' }}>
-                {t} x
-              </span>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input style={{ ...is, flex: 1 }} value={tagInput} onChange={e => setTagInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addTag()} placeholder="Add a tag..." />
-            <button onClick={addTag} style={{
-              padding: '10px 16px', border: 'none', borderRadius: 8, background: '#e0ddd7',
-              color: '#2d2926', fontWeight: 600, cursor: 'pointer', fontSize: 13
-            }}>+</button>
-          </div>
-        </div>
-        <div>
-          <label style={ls}>Notes</label>
-          <input style={is} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional notes..." />
-        </div>
-        <button onClick={handleSave} disabled={!form.name || saving} style={{
-          padding: '14px 24px', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 15,
-          cursor: form.name && !saving ? 'pointer' : 'default', marginTop: 4,
-          background: form.name && !saving ? '#2d2926' : '#e0ddd7',
-          color: form.name && !saving ? '#fff' : '#a09a93', transition: 'all 0.2s'
-        }}>{saving ? 'Saving...' : `Add to ${person === 'ally' ? "Ally's" : "Gerry's"} Closet`}</button>
-      </div>
+      <ItemForm form={form} setForm={setForm} tagInput={tagInput} setTagInput={setTagInput} addTag={addTag} ls={ls} is={is} ss={ss} />
+
+      <button onClick={handleSave} disabled={!form.name || saving} style={{
+        width: '100%', padding: '14px 24px', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 15,
+        cursor: form.name && !saving ? 'pointer' : 'default', marginTop: 16,
+        background: form.name && !saving ? '#2d2926' : '#e0ddd7',
+        color: form.name && !saving ? '#fff' : '#a09a93', transition: 'all 0.2s'
+      }}>{saving ? 'Saving...' : `Add to ${person === 'ally' ? "Ally's" : "Gerry's"} Closet`}</button>
     </div>
   )
 }
 
+// ── Outfit View ──
 function OutfitView({ items, person, outfits, onSaveOutfit, onDeleteOutfit }) {
   const [selected, setSelected] = useState([])
   const [occasion, setOccasion] = useState('')
@@ -419,11 +536,9 @@ function OutfitView({ items, person, outfits, onSaveOutfit, onDeleteOutfit }) {
   const handleSave = async () => {
     if (selected.length < 2) return
     await onSaveOutfit({
-      id: generateId(),
-      name: suggestion?.outfitName || `Outfit ${outfits.length + 1}`,
-      itemIds: selected.map(i => i.id), occasion,
-      notes: suggestion?.reasoning || '', person,
-      dateCreated: new Date().toISOString()
+      id: generateId(), name: suggestion?.outfitName || `Outfit ${outfits.length + 1}`,
+      itemIds: selected.map(i => i.id), occasion, notes: suggestion?.reasoning || '',
+      person, dateCreated: new Date().toISOString()
     })
     setSelected([]); setSuggestion(null); setOccasion('')
   }
@@ -467,9 +582,7 @@ function OutfitView({ items, person, outfits, onSaveOutfit, onDeleteOutfit }) {
       <div style={{ fontSize: 14, fontWeight: 700, color: '#2d2926', marginBottom: 10 }}>
         {selected.length > 0 ? `Selected: ${selected.length} items` : 'Or pick items manually:'}
       </div>
-
       <CategoryFilter selected={filter} onSelect={setFilter} />
-
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
         {filtered.map(item => (
           <div key={item.id} onClick={() => toggleItem(item)} style={{
@@ -528,6 +641,7 @@ function OutfitView({ items, person, outfits, onSaveOutfit, onDeleteOutfit }) {
   )
 }
 
+// ── Main App ──
 export default function App() {
   const [person, setPerson] = useState('ally')
   const [tab, setTab] = useState('closet')
@@ -537,6 +651,7 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState('')
+  const [editingItem, setEditingItem] = useState(null)
 
   useEffect(() => {
     setLoading(true)
@@ -548,16 +663,21 @@ export default function App() {
   const showToast = (msg) => setToast(msg)
 
   const addItem = async (item) => {
+    try { await fbSaveItem(item); setItems(prev => [item, ...prev]); setTab('closet'); showToast('Item added!') }
+    catch (e) { showToast('Failed to save item') }
+  }
+
+  const updateItem = async (item) => {
     try {
       await fbSaveItem(item)
-      setItems(prev => [item, ...prev])
-      setTab('closet')
-      showToast('Item added!')
-    } catch (e) { showToast('Failed to save item') }
+      setItems(prev => prev.map(i => i.id === item.id ? item : i))
+      setEditingItem(null)
+      showToast('Item updated!')
+    } catch (e) { showToast('Failed to update item') }
   }
 
   const handleDeleteItem = async (id) => {
-    try { await fbDeleteItem(id, person); setItems(prev => prev.filter(i => i.id !== id)); showToast('Item removed') }
+    try { await fbDeleteItem(id, person); setItems(prev => prev.filter(i => i.id !== id)); setEditingItem(null); showToast('Item removed') }
     catch (e) { showToast('Failed to delete') }
   }
 
@@ -585,14 +705,26 @@ export default function App() {
         <div style={{ fontSize: 11, color: '#a09a93', letterSpacing: 2, textTransform: 'uppercase' }}>wardrobe manager</div>
       </div>
 
-      <PersonSwitcher person={person} setPerson={(p) => { setPerson(p); setFilter('All'); setSearchTerm('') }} />
-      <div style={{ marginTop: 16 }}><NavTabs tab={tab} setTab={setTab} itemCount={items.length} /></div>
+      {!editingItem && (
+        <>
+          <PersonSwitcher person={person} setPerson={(p) => { setPerson(p); setFilter('All'); setSearchTerm('') }} />
+          <div style={{ marginTop: 16 }}><NavTabs tab={tab} setTab={setTab} itemCount={items.length} /></div>
+        </>
+      )}
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40, color: '#a09a93' }}>
           <span className="spinner" style={{ borderColor: 'rgba(160,154,147,0.3)', borderTopColor: '#a09a93' }} />
           <div style={{ marginTop: 12 }}>Loading closet...</div>
         </div>
+      ) : editingItem ? (
+        <EditItemView
+          item={editingItem}
+          person={person}
+          onSave={updateItem}
+          onCancel={() => setEditingItem(null)}
+          onDelete={handleDeleteItem}
+        />
       ) : (
         <>
           {tab === 'closet' && (
@@ -617,7 +749,7 @@ export default function App() {
                   </div>
                   <CategoryFilter selected={filter} onSelect={setFilter} />
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
-                    {filtered.map(item => <ClothingCard key={item.id} item={item} onDelete={handleDeleteItem} />)}
+                    {filtered.map(item => <ClothingCard key={item.id} item={item} onTap={setEditingItem} onDelete={handleDeleteItem} />)}
                   </div>
                   {filtered.length === 0 && <div style={{ textAlign: 'center', padding: 30, color: '#a09a93', fontSize: 13 }}>No items match that filter</div>}
                 </>
