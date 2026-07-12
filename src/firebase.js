@@ -1,6 +1,5 @@
 import { initializeApp } from 'firebase/app'
 import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc, query, where, orderBy } from 'firebase/firestore'
-import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -13,7 +12,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig)
 const db = getFirestore(app)
-const storage = getStorage(app)
 
 export async function loadItems(person) {
   try {
@@ -25,21 +23,14 @@ export async function loadItems(person) {
 
 export async function saveItem(item) {
   try {
-    let imageUrl = item.image
-    if (item.image && item.image.startsWith('data:')) {
-      const imageRef = ref(storage, 'closet-images/' + item.person + '/' + item.id + '.jpg')
-      await uploadString(imageRef, item.image, 'data_url')
-      imageUrl = await getDownloadURL(imageRef)
-    }
-    await setDoc(doc(db, 'closet-items', item.id), { ...item, image: imageUrl })
-    return imageUrl
+    await setDoc(doc(db, 'closet-items', item.id), item)
+    return item.image
   } catch (e) { console.error('Save item failed:', e); throw e }
 }
 
 export async function deleteItem(itemId, person) {
   try {
     await deleteDoc(doc(db, 'closet-items', itemId))
-    try { const imageRef = ref(storage, 'closet-images/' + person + '/' + itemId + '.jpg'); await deleteObject(imageRef) } catch (e) {}
   } catch (e) { console.error('Delete item failed:', e); throw e }
 }
 
