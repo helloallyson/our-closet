@@ -10,7 +10,8 @@ import {
 } from './firebase'
 
 const CATEGORIES = ['All', 'Tops', 'Bottoms', 'Dresses', 'Outerwear', 'Shoes', 'Accessories', 'Activewear', 'Swimwear', 'Sleepwear', 'Other']
-const COLORS = ['Black', 'White', 'Gray', 'Navy', 'Blue', 'Red', 'Pink', 'Green', 'Brown', 'Tan', 'Orange', 'Yellow', 'Purple', 'Multi', 'Other']
+const ACCESSORY_TYPES = ['Sunglasses', 'Necklace', 'Earrings', 'Bracelet', 'Ring', 'Watch', 'Hat', 'Belt', 'Bag', 'Scarf', 'Hair Accessory', 'Tie', 'Other Accessory']
+const COLORS = ['Black', 'White', 'Gray', 'Navy', 'Blue', 'Red', 'Pink', 'Green', 'Brown', 'Tan', 'Orange', 'Yellow', 'Purple', 'Gold', 'Silver', 'Rose Gold', 'Multi', 'Other']
 const SEASONS = ['Spring', 'Summer', 'Fall', 'Winter', 'All-Season']
 const STYLES = ['Casual', 'Formal', 'Business', 'Sporty', 'Bohemian', 'Streetwear', 'Classic', 'Trendy', 'Vintage', 'Loungewear']
 
@@ -196,21 +197,39 @@ function NavTabs({ tab, setTab, itemCount }) {
   )
 }
 
-function CategoryFilter({ selected, onSelect }) {
+function CategoryFilter({ selected, onSelect, subFilter, onSubFilter }) {
   return (
-    <div className="filter-strip" style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8, marginBottom: 12 }}>
-      {CATEGORIES.map(c => (
-        <button key={c} onClick={() => onSelect(c)} style={{
-          padding: '6px 14px',
-          border: '1px solid ' + (selected === c ? '#2d2926' : '#e0ddd7'),
-          borderRadius: 20,
-          background: selected === c ? '#2d2926' : '#fff',
-          color: selected === c ? '#fff' : '#6b665f',
-          fontSize: 12, fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap'
-        }}>
-          {c}
-        </button>
-      ))}
+    <div>
+      <div className="filter-strip" style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8, marginBottom: selected === 'Accessories' ? 6 : 12 }}>
+        {CATEGORIES.map(c => (
+          <button key={c} onClick={() => { onSelect(c); if (onSubFilter) onSubFilter('All') }} style={{
+            padding: '6px 14px',
+            border: '1px solid ' + (selected === c ? '#2d2926' : '#e0ddd7'),
+            borderRadius: 20,
+            background: selected === c ? '#2d2926' : '#fff',
+            color: selected === c ? '#fff' : '#6b665f',
+            fontSize: 12, fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap'
+          }}>
+            {c}
+          </button>
+        ))}
+      </div>
+      {selected === 'Accessories' && onSubFilter && (
+        <div className="filter-strip" style={{ display: 'flex', gap: 5, overflowX: 'auto', paddingBottom: 8, marginBottom: 12 }}>
+          {['All'].concat(ACCESSORY_TYPES).map(at => (
+            <button key={at} onClick={() => onSubFilter(at)} style={{
+              padding: '4px 10px',
+              border: '1px solid ' + ((subFilter || 'All') === at ? '#8B6914' : '#e8e2d4'),
+              borderRadius: 16,
+              background: (subFilter || 'All') === at ? '#8B6914' : '#faf8f4',
+              color: (subFilter || 'All') === at ? '#fff' : '#8a857e',
+              fontSize: 11, fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap'
+            }}>
+              {at}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -249,6 +268,25 @@ function ItemForm({ form, setForm, tagInput, setTagInput, addTag }) {
           </select>
         </div>
       </div>
+      {form.category === 'Accessories' && (
+        <div>
+          <label style={ls}>Accessory Type</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {ACCESSORY_TYPES.map(at => (
+              <button key={at} onClick={() => setForm(f => ({ ...f, accessoryType: at }))} style={{
+                padding: '6px 12px',
+                border: '1px solid ' + (form.accessoryType === at ? '#2d2926' : '#e0ddd7'),
+                borderRadius: 20,
+                background: form.accessoryType === at ? '#2d2926' : '#fff',
+                color: form.accessoryType === at ? '#fff' : '#6b665f',
+                fontSize: 11, fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap'
+              }}>
+                {at}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div>
         <label style={ls}>Style</label>
         <select style={ss} value={form.style} onChange={e => setForm(f => ({ ...f, style: e.target.value }))}>
@@ -337,7 +375,9 @@ function ClothingCard({ item, onTap, onDelete }) {
       </div>
       <div style={{ padding: '10px 12px' }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: '#2d2926', marginBottom: 2, lineHeight: 1.3 }}>{item.name}</div>
-        <div style={{ fontSize: 11, color: '#a09a93' }}>{item.category} {'\u00B7'} {item.color}</div>
+        <div style={{ fontSize: 11, color: '#a09a93' }}>
+          {item.category === 'Accessories' && item.accessoryType ? item.accessoryType : item.category} {'\u00B7'} {item.color}
+        </div>
         {item.tags && item.tags.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
             {item.tags.slice(0, 3).map((t, i) => (
@@ -360,7 +400,7 @@ function EditItemView({ item, person, onSave, onCancel, onDelete }) {
     name: item.name || '', category: item.category || 'Other',
     color: item.color || 'Other', style: item.style || 'Casual',
     seasons: item.seasons || ['All-Season'], tags: item.tags || [],
-    description: item.description || ''
+    description: item.description || '', accessoryType: item.accessoryType || ''
   })
   const [tagInput, setTagInput] = useState('')
   const fileRef = useRef()
@@ -391,7 +431,8 @@ function EditItemView({ item, person, onSave, onCancel, onDelete }) {
         name: tags.name || form.name, category: tags.category || form.category,
         color: tags.color || form.color, style: tags.style || form.style,
         seasons: tags.seasons || form.seasons, tags: tags.tags || form.tags,
-        description: tags.description || form.description
+        description: tags.description || form.description,
+        accessoryType: tags.accessoryType || form.accessoryType
       })
     }
     setRetagging(false)
@@ -466,7 +507,7 @@ function AddItemView({ person, onAdd }) {
   const [statusMsg, setStatusMsg] = useState('')
   const [form, setForm] = useState({
     name: '', category: 'Tops', color: 'Black', style: 'Casual',
-    seasons: ['All-Season'], tags: [], description: ''
+    seasons: ['All-Season'], tags: [], description: '', accessoryType: ''
   })
   const [tagInput, setTagInput] = useState('')
   const [aiDone, setAiDone] = useState(false)
@@ -503,7 +544,7 @@ function AddItemView({ person, onAdd }) {
           name: tags.name || '', category: tags.category || 'Other',
           color: tags.color || 'Other', style: tags.style || 'Casual',
           seasons: tags.seasons || ['All-Season'], tags: tags.tags || [],
-          description: tags.description || ''
+          description: tags.description || '', accessoryType: tags.accessoryType || ''
         })
         setAiDone(true)
       }
@@ -519,7 +560,7 @@ function AddItemView({ person, onAdd }) {
     try {
       await onAdd({ id: generateId(), ...form, image, person, dateAdded: new Date().toISOString() })
       setImage(null)
-      setForm({ name: '', category: 'Tops', color: 'Black', style: 'Casual', seasons: ['All-Season'], tags: [], description: '' })
+      setForm({ name: '', category: 'Tops', color: 'Black', style: 'Casual', seasons: ['All-Season'], tags: [], description: '', accessoryType: '' })
       setAiDone(false)
       if (fileRef.current) fileRef.current.value = ''
     } finally {
@@ -856,6 +897,7 @@ export default function App() {
   const [items, setItems] = useState([])
   const [outfits, setOutfits] = useState([])
   const [filter, setFilter] = useState('All')
+  const [subFilter, setSubFilter] = useState('All')
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState('')
@@ -926,9 +968,10 @@ export default function App() {
 
   var filtered = items.filter(function(i) {
     var catMatch = filter === 'All' || i.category === filter
+    var subMatch = filter !== 'Accessories' || subFilter === 'All' || i.accessoryType === subFilter
     var searchMatch = !searchTerm || (i.name && i.name.toLowerCase().indexOf(searchTerm.toLowerCase()) >= 0) ||
       (i.tags && i.tags.some(function(t) { return t.toLowerCase().indexOf(searchTerm.toLowerCase()) >= 0 }))
-    return catMatch && searchMatch
+    return catMatch && subMatch && searchMatch
   })
 
   return (
@@ -940,7 +983,7 @@ export default function App() {
 
       {!editingItem && (
         <div>
-          <PersonSwitcher person={person} setPerson={function(p) { setPerson(p); setFilter('All'); setSearchTerm('') }} />
+          <PersonSwitcher person={person} setPerson={function(p) { setPerson(p); setFilter('All'); setSubFilter('All'); setSearchTerm('') }} />
           <div style={{ marginTop: 16 }}>
             <NavTabs tab={tab} setTab={setTab} itemCount={items.length} />
           </div>
@@ -979,7 +1022,7 @@ export default function App() {
                         borderRadius: 10, fontSize: 14, color: '#2d2926', background: '#faf9f7', boxSizing: 'border-box'
                       }} />
                   </div>
-                  <CategoryFilter selected={filter} onSelect={setFilter} />
+                  <CategoryFilter selected={filter} onSelect={setFilter} subFilter={subFilter} onSubFilter={setSubFilter} />
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
                     {filtered.map(function(item) {
                       return <ClothingCard key={item.id} item={item} onTap={setEditingItem} onDelete={handleDeleteItem} />

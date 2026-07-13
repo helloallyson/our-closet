@@ -49,9 +49,10 @@ export default async function handler(req) {
             {
               type: 'text',
               text: `You are a fashion assistant. Analyze this clothing item photo and return ONLY a JSON object (no markdown, no backticks, no explanation) with these fields:
-- "name": short descriptive name (e.g. "Black V-Neck Tee", "Distressed Slim Jeans")
+- "name": short descriptive name (e.g. "Black V-Neck Tee", "Distressed Slim Jeans", "Gold Hoop Earrings")
 - "category": one of [Tops, Bottoms, Dresses, Outerwear, Shoes, Accessories, Activewear, Swimwear, Sleepwear, Other]
-- "color": primary color, one of [Black, White, Gray, Navy, Blue, Red, Pink, Green, Brown, Tan, Orange, Yellow, Purple, Multi, Other]
+- "accessoryType": ONLY if category is Accessories, one of [Sunglasses, Necklace, Earrings, Bracelet, Ring, Watch, Hat, Belt, Bag, Scarf, Hair Accessory, Tie, Other Accessory]. Omit this field if not an accessory.
+- "color": primary color, one of [Black, White, Gray, Navy, Blue, Red, Pink, Green, Brown, Tan, Orange, Yellow, Purple, Gold, Silver, Rose Gold, Multi, Other]
 - "style": one of [Casual, Formal, Business, Sporty, Bohemian, Streetwear, Classic, Trendy, Vintage, Loungewear]
 - "seasons": array of applicable seasons from [Spring, Summer, Fall, Winter, All-Season]
 - "tags": array of 3-5 descriptive tags like ["cotton", "v-neck", "fitted", "everyday"]
