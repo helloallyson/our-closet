@@ -30,9 +30,8 @@ export async function saveItem(item) {
 }
 
 export async function deleteItem(itemId, person) {
-  try {
-    await deleteDoc(doc(db, 'closet-items', itemId))
-  } catch (e) { console.error('Delete item failed:', e); throw e }
+  try { await deleteDoc(doc(db, 'closet-items', itemId)) }
+  catch (e) { console.error('Delete item failed:', e); throw e }
 }
 
 export async function loadOutfits(person) {
