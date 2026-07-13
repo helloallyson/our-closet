@@ -200,7 +200,7 @@ function NavTabs({ tab, setTab, itemCount }) {
 function CategoryFilter({ selected, onSelect, subFilter, onSubFilter }) {
   return (
     <div>
-      <div className="filter-strip" style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8, marginBottom: selected === 'Accessories' ? 6 : 12 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, paddingBottom: 8, marginBottom: selected === 'Accessories' ? 6 : 12 }}>
         {CATEGORIES.map(c => (
           <button key={c} onClick={() => { onSelect(c); if (onSubFilter) onSubFilter('All') }} style={{
             padding: '6px 14px',
@@ -215,7 +215,7 @@ function CategoryFilter({ selected, onSelect, subFilter, onSubFilter }) {
         ))}
       </div>
       {selected === 'Accessories' && onSubFilter && (
-        <div className="filter-strip" style={{ display: 'flex', gap: 5, overflowX: 'auto', paddingBottom: 8, marginBottom: 12 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, paddingBottom: 8, marginBottom: 12 }}>
           {['All'].concat(ACCESSORY_TYPES).map(at => (
             <button key={at} onClick={() => onSubFilter(at)} style={{
               padding: '4px 10px',
