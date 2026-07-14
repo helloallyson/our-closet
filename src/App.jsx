@@ -123,7 +123,7 @@ async function aiTagClothing(imageBase64) {
   }
 }
 
-async function aiSuggestOutfit(items, occasion, person, weather) {
+async function aiSuggestOutfit(items, occasion, person, weather, recentOutfitNames) {
   try {
     const res = await fetch('/api/ai-outfit', {
       method: 'POST',
@@ -136,7 +136,8 @@ async function aiSuggestOutfit(items, occasion, person, weather) {
         })),
         occasion,
         person,
-        weather
+        weather,
+        recentOutfitNames: recentOutfitNames || []
       })
     })
     if (!res.ok) throw new Error('fail')
@@ -782,6 +783,7 @@ function OutfitView({ items, person, outfits, onSaveOutfit, onDeleteOutfit, onUp
   const [loading, setLoading] = useState(false)
   const [suggestion, setSuggestion] = useState(null)
   const [filter, setFilter] = useState('All')
+  const [recentSuggestions, setRecentSuggestions] = useState([])
 
   const toggleItem = (item) => {
     setSelected(s => s.find(i => i.id === item.id) ? s.filter(i => i.id !== item.id) : [...s, item])
@@ -801,9 +803,20 @@ function OutfitView({ items, person, outfits, onSaveOutfit, onDeleteOutfit, onUp
         wind: weather.wind
       }
     }
-    const result = await aiSuggestOutfit(items, occasion, person === 'ally' ? 'Ally' : 'Gerry', weatherData)
+    // Build list of recent outfit item combos to avoid
+    var recentNames = recentSuggestions.map(function(s) { return s.name + ' (items: ' + s.itemIds.join(', ') + ')' })
+    // Also include saved outfits
+    outfits.slice(0, 5).forEach(function(o) {
+      recentNames.push(o.name + ' (items: ' + o.itemIds.join(', ') + ')')
+    })
+    const result = await aiSuggestOutfit(items, occasion, person === 'ally' ? 'Ally' : 'Gerry', weatherData, recentNames)
     if (result && !result.error) {
       setSuggestion(result)
+      // Track this suggestion so we don't repeat it
+      setRecentSuggestions(function(prev) {
+        var updated = [{ name: result.outfitName, itemIds: result.itemIds || [] }].concat(prev)
+        return updated.slice(0, 10)
+      })
       var matched = []
       if (result.itemIds) {
         for (var i = 0; i < result.itemIds.length; i++) {
