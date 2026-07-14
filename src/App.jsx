@@ -131,7 +131,8 @@ async function aiSuggestOutfit(items, occasion, person, weather) {
       body: JSON.stringify({
         items: items.map(i => ({
           id: i.id, name: i.name, category: i.category,
-          color: i.color, style: i.style, seasons: i.seasons
+          color: i.color, style: i.style, seasons: i.seasons,
+          accessoryType: i.accessoryType || '', lastWorn: i.lastWorn || ''
         })),
         occasion,
         person,
@@ -333,6 +334,10 @@ function ItemForm({ form, setForm, tagInput, setTagInput, addTag }) {
         <label style={ls}>Notes</label>
         <input style={is} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional notes..." />
       </div>
+      <div>
+        <label style={ls}>Last Worn</label>
+        <input type="date" style={is} value={form.lastWorn || ''} onChange={e => setForm(f => ({ ...f, lastWorn: e.target.value }))} />
+      </div>
     </div>
   )
 }
@@ -378,6 +383,11 @@ function ClothingCard({ item, onTap, onDelete }) {
         <div style={{ fontSize: 11, color: '#a09a93' }}>
           {item.category === 'Accessories' && item.accessoryType ? item.accessoryType : item.category} {'\u00B7'} {item.color}
         </div>
+        {item.lastWorn && (
+          <div style={{ fontSize: 10, color: '#b0aaa3', marginTop: 2 }}>
+            Last worn: {new Date(item.lastWorn + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </div>
+        )}
         {item.tags && item.tags.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
             {item.tags.slice(0, 3).map((t, i) => (
@@ -400,7 +410,8 @@ function EditItemView({ item, person, onSave, onCancel, onDelete }) {
     name: item.name || '', category: item.category || 'Other',
     color: item.color || 'Other', style: item.style || 'Casual',
     seasons: item.seasons || ['All-Season'], tags: item.tags || [],
-    description: item.description || '', accessoryType: item.accessoryType || ''
+    description: item.description || '', accessoryType: item.accessoryType || '',
+    lastWorn: item.lastWorn || ''
   })
   const [tagInput, setTagInput] = useState('')
   const fileRef = useRef()
@@ -432,7 +443,8 @@ function EditItemView({ item, person, onSave, onCancel, onDelete }) {
         color: tags.color || form.color, style: tags.style || form.style,
         seasons: tags.seasons || form.seasons, tags: tags.tags || form.tags,
         description: tags.description || form.description,
-        accessoryType: tags.accessoryType || form.accessoryType
+        accessoryType: tags.accessoryType || form.accessoryType,
+        lastWorn: form.lastWorn
       })
     }
     setRetagging(false)
@@ -507,7 +519,7 @@ function AddItemView({ person, onAdd }) {
   const [statusMsg, setStatusMsg] = useState('')
   const [form, setForm] = useState({
     name: '', category: 'Tops', color: 'Black', style: 'Casual',
-    seasons: ['All-Season'], tags: [], description: '', accessoryType: ''
+    seasons: ['All-Season'], tags: [], description: '', accessoryType: '', lastWorn: ''
   })
   const [tagInput, setTagInput] = useState('')
   const [aiDone, setAiDone] = useState(false)
@@ -544,7 +556,7 @@ function AddItemView({ person, onAdd }) {
           name: tags.name || '', category: tags.category || 'Other',
           color: tags.color || 'Other', style: tags.style || 'Casual',
           seasons: tags.seasons || ['All-Season'], tags: tags.tags || [],
-          description: tags.description || '', accessoryType: tags.accessoryType || ''
+          description: tags.description || '', accessoryType: tags.accessoryType || '', lastWorn: ''
         })
         setAiDone(true)
       }
@@ -560,7 +572,7 @@ function AddItemView({ person, onAdd }) {
     try {
       await onAdd({ id: generateId(), ...form, image, person, dateAdded: new Date().toISOString() })
       setImage(null)
-      setForm({ name: '', category: 'Tops', color: 'Black', style: 'Casual', seasons: ['All-Season'], tags: [], description: '', accessoryType: '' })
+      setForm({ name: '', category: 'Tops', color: 'Black', style: 'Casual', seasons: ['All-Season'], tags: [], description: '', accessoryType: '', lastWorn: '' })
       setAiDone(false)
       if (fileRef.current) fileRef.current.value = ''
     } finally {
@@ -722,7 +734,49 @@ function WeatherCard({ weather, location, onChangeLocation }) {
 
 // ── Outfit View ──
 
-function OutfitView({ items, person, outfits, onSaveOutfit, onDeleteOutfit, weather, location, onChangeLocation }) {
+function OutfitPhotoUpload({ outfit, onUploadPhoto }) {
+  const photoRef = useRef()
+  const [uploading, setUploading] = useState(false)
+
+  const handlePhoto = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setUploading(true)
+    const reader = new FileReader()
+    reader.onload = async () => {
+      var compressed = await compressImage(reader.result, 400)
+      await onUploadPhoto(outfit.id, compressed)
+      setUploading(false)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  return (
+    <div style={{ marginTop: 8 }}>
+      <input ref={photoRef} type="file" accept="image/*" onChange={handlePhoto} style={{ display: 'none' }} />
+      <button onClick={() => photoRef.current && photoRef.current.click()} disabled={uploading} style={{
+        padding: '6px 12px', border: '1px solid #e0ddd7', borderRadius: 8,
+        background: '#fff', fontSize: 11, fontWeight: 600, color: '#2d2926',
+        cursor: 'pointer'
+      }}>
+        {uploading ? 'Uploading...' : (outfit.photos && outfit.photos.length > 0 ? '\uD83D\uDCF8 Add Another Photo' : '\uD83D\uDCF8 Add Outfit Photo')}
+      </button>
+      {outfit.photos && outfit.photos.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, marginTop: 8, overflowX: 'auto' }}>
+          {outfit.photos.map(function(photo, idx) {
+            return (
+              <div key={idx} style={{ width: 80, height: 100, borderRadius: 8, overflow: 'hidden', flexShrink: 0, border: '1px solid #e0ddd7' }}>
+                <img src={photo} alt={'Outfit photo ' + (idx + 1)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function OutfitView({ items, person, outfits, onSaveOutfit, onDeleteOutfit, onUpdateOutfit, weather, location, onChangeLocation }) {
   const [selected, setSelected] = useState([])
   const [occasion, setOccasion] = useState('')
   const [loading, setLoading] = useState(false)
@@ -880,6 +934,11 @@ function OutfitView({ items, person, outfits, onSaveOutfit, onDeleteOutfit, weat
                   ))}
                 </div>
                 {outfit.notes && <div style={{ fontSize: 12, color: '#6b665f', marginTop: 8, lineHeight: 1.4 }}>{outfit.notes}</div>}
+                <OutfitPhotoUpload outfit={outfit} onUploadPhoto={function(outfitId, photoData) {
+                  var existing = outfit.photos || []
+                  var updated = { ...outfit, photos: existing.concat([photoData]) }
+                  onUpdateOutfit(updated)
+                }} />
               </div>
             )
           })}
@@ -961,6 +1020,14 @@ export default function App() {
     } catch (e) { showToast('Failed to delete') }
   }
 
+  var handleUpdateOutfit = async function(outfit) {
+    try {
+      await fbSaveOutfit(outfit)
+      setOutfits(function(prev) { return prev.map(function(o) { return o.id === outfit.id ? outfit : o }) })
+      showToast('Photo added!')
+    } catch (e) { showToast('Failed to save photo') }
+  }
+
   var handleChangeLocation = function(loc) {
     setWeatherLocation(loc)
     setWeather(null)
@@ -1038,7 +1105,7 @@ export default function App() {
           {tab === 'add' && <AddItemView person={person} onAdd={addItem} />}
           {tab === 'outfits' && (
             <OutfitView items={items} person={person} outfits={outfits}
-              onSaveOutfit={handleSaveOutfit} onDeleteOutfit={handleDeleteOutfit}
+              onSaveOutfit={handleSaveOutfit} onDeleteOutfit={handleDeleteOutfit} onUpdateOutfit={handleUpdateOutfit}
               weather={weather} location={weatherLocation} onChangeLocation={handleChangeLocation} />
           )}
         </div>
