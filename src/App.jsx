@@ -877,6 +877,12 @@ function OutfitView({ items, person, outfits, onSaveOutfit, onDeleteOutfit, onUp
       {suggestion && (
         <div style={{ background: '#f7f6f3', borderRadius: 12, padding: 16, marginBottom: 20, border: '1px solid #e0ddd7' }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#2d2926', marginBottom: 4 }}>{'\u2728'} {suggestion.outfitName}</div>
+          {selected.length > 0 && (
+            <div style={{ fontSize: 12, color: '#2d2926', marginBottom: 8, padding: '8px 10px', background: '#eeedea', borderRadius: 8 }}>
+              <span style={{ fontWeight: 600 }}>Picked: </span>
+              {selected.map(function(s, i) { return (i > 0 ? ', ' : '') + s.name })}
+            </div>
+          )}
           <div style={{ fontSize: 13, color: '#6b665f', lineHeight: 1.5, marginBottom: 8 }}>{suggestion.reasoning}</div>
           {suggestion.stylingTips && <div style={{ fontSize: 12, color: '#a09a93', fontStyle: 'italic' }}>{'\uD83D\uDCA1'} {suggestion.stylingTips}</div>}
         </div>
