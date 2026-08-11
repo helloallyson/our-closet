@@ -43,11 +43,11 @@ async function aiSuggestOutfit(items,occasion,person,weather,recentNames,anchorI
       items:itemsToSend.map(i=>({id:i.id,name:i.name,category:i.category,color:i.color,style:i.style||'',accessoryType:i.accessoryType||'',lastWorn:i.lastWorn||''})),
       occasion:occasion||'',person:person||'',weather:weather||null,recentOutfitNames:(recentNames||[]).slice(0,5),anchorItemIds:anchorItemIds||[],photoDescription:photoDescription||null
     })})
-    if(!r.ok){console.error('AI outfit response:',r.status);return null}
+    if(!r.ok){console.error('AI outfit response:',r.status);var errText=await r.text().catch(()=>'');return{error:'API returned '+r.status+': '+errText}}
     var data=await r.json()
-    if(data.error){console.error('AI outfit error:',data.error);return null}
+    if(data.error){console.error('AI outfit error:',data.error);return{error:data.error}}
     return data
-  }catch(e){console.error('AI outfit fetch error:',e);return null}
+  }catch(e){console.error('AI outfit fetch error:',e);return{error:e.message}}
 }
 
 // ── Small Components ──
@@ -236,21 +236,25 @@ function StyleView({items,person,outfits,onSaveOutfit,weather,location,onChangeL
     if(items.length<2)return;setLoading(true);setSuggestion(null)
     try{
       var wd=null;if(weather){wd={location:location&&location.name?location.name.split(',')[0]:'Des Moines',temp:weather.temp,feelsLike:weather.feelsLike,description:weather.description,wind:weather.wind}}
-      // Build avoid list but cap it to keep request small
-      var rn=recentSuggestions.map(s=>s.name+' (items: '+s.itemIds.join(', ')+')')
-      outfits.slice(0,8).forEach(o=>{rn.push(o.name+' (items: '+o.itemIds.join(', ')+')')})
+      // Build avoid list safely
+      var rn=[]
+      recentSuggestions.forEach(function(s){try{rn.push(s.name+' (items: '+(s.itemIds||[]).join(', ')+')')}catch(e){}})
+      outfits.slice(0,8).forEach(function(o){try{if(o.itemIds)rn.push(o.name+' (items: '+o.itemIds.join(', ')+')')}catch(e){}})
       var anchorIds=anchorItems.map(a=>a.id)
+      console.log('Sending to AI:', {occasion, anchorIds, photoDescription: !!photoDescription, itemCount: items.length})
       const result=await aiSuggestOutfit(items,occasion,person==='ally'?'Ally':'Gerry',wd,rn,anchorIds,photoDescription)
+      console.log('AI result:', result)
       if(result&&!result.error){
         setSuggestion(result)
         setRecentSuggestions(prev=>[{name:result.outfitName,itemIds:result.itemIds||[]},...prev].slice(0,10))
         var matched=[];if(result.itemIds){for(var i=0;i<result.itemIds.length;i++){var found=items.find(it=>it.id===result.itemIds[i]);if(found)matched.push(found)}};setSelected(matched)
       } else {
-        onShowToast('AI had trouble styling that. Try again!')
+        console.error('AI error:', result)
+        onShowToast(result&&result.error?result.error:'AI had trouble. Try again!')
       }
     }catch(e){
       console.error('Style error:',e)
-      onShowToast('Something went wrong. Try again!')
+      onShowToast('Something went wrong: '+e.message)
     }
     setLoading(false)
   }
