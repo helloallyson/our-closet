@@ -62,7 +62,7 @@ RULES:
 
 Be fashionable, specific, encouraging.`
 
-    const userPrompt = 'Wardrobe:\n' + itemSummaries + weatherContext + photoContext + anchorContext + avoidContext + '\n\nOutfit for: ' + (occasion || 'a casual day out') + '\n\nReturn ONLY JSON (no markdown):\n{"outfitName":"...","itemIds":["..."],"reasoning":"2-3 sentences on why these work together","stylingTips":"one actionable tip"}'
+    const userPrompt = 'Wardrobe:\n' + itemSummaries + weatherContext + photoContext + anchorContext + avoidContext + '\n\nOutfit for: ' + (occasion || 'a casual day out') + '\n\nReturn ONLY JSON (no markdown):\n{"outfitName":"...","itemIds":["..."],"reasoning":"2-3 sentences using item NAMES only. NEVER include item IDs in the reasoning or styling tips - just use the human-readable names.","stylingTips":"one actionable tip"}'
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
