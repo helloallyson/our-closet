@@ -310,6 +310,17 @@ function StyleView({items,person,outfits,onSaveOutfit,weather,location,onChangeL
         </div>)
         :(<div style={{textAlign:'center'}}><div style={{fontSize:14,fontWeight:600,color:'#2d2926',marginBottom:4}}>Tap items you want to wear</div><div style={{fontSize:12,color:'#a09a93'}}>Pick one or more pieces and the AI will build an outfit around them</div></div>)}
       </div>
+
+      {/* Suggestion shows here in pick mode */}
+      {suggestion&&(<div style={{background:'#f7f6f3',borderRadius:12,padding:16,marginBottom:12,border:'1px solid #e0ddd7'}}>
+        <div style={{fontSize:15,fontWeight:700,color:'#2d2926',marginBottom:4}}>{'\u2728'} {suggestion.outfitName}</div>
+        {selected.length>0&&<div style={{fontSize:12,color:'#2d2926',marginBottom:8,padding:'8px 10px',background:'#eeedea',borderRadius:8}}><span style={{fontWeight:600}}>Picked: </span>{selected.map(function(s,i){return(i>0?', ':'')+s.name})}</div>}
+        <div style={{display:'flex',gap:6,marginBottom:10,overflowX:'auto'}}>{selected.map(s=><div key={s.id} style={{width:60,height:60,borderRadius:8,overflow:'hidden',background:'#eeedea',flexShrink:0}}>{s.image?<img src={s.image} alt={s.name} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>{'\uD83D\uDC55'}</div>}</div>)}</div>
+        <div style={{fontSize:13,color:'#6b665f',lineHeight:1.5,marginBottom:8}}>{suggestion.reasoning}</div>
+        {suggestion.stylingTips&&<div style={{fontSize:12,color:'#a09a93',fontStyle:'italic'}}>{'\uD83D\uDCA1'} {suggestion.stylingTips}</div>}
+        {selected.length>=2&&<button onClick={handleSave} style={{width:'100%',padding:'12px',border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer',background:'#2d2926',color:'#fff',marginTop:12}}>Save This Outfit</button>}
+      </div>)}
+
       <div style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:8}}>
         {items.map(item=><ClothingCard key={item.id} item={item} selectable selected={!!anchorItems.find(a=>a.id===item.id)} onSelect={toggleAnchor}/>)}
       </div>
