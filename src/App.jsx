@@ -27,23 +27,44 @@ async function aiTagClothing(img){try{const b=img.split(',')[1];const m=img.incl
 
 async function aiSuggestOutfit(items,occasion,person,weather,recentNames,anchorItemIds,photoDescription){
   try{
-    // Large wardrobe: send max 40 items to prevent Netlify timeout
-    var itemsToSend = items.slice()
-    var anchors = anchorItemIds ? itemsToSend.filter(i => anchorItemIds.includes(i.id)) : []
-    var rest = itemsToSend.filter(i => !anchorItemIds || !anchorItemIds.includes(i.id))
-    // Sort: never worn first, then oldest lastWorn
-    rest.sort(function(a, b) {
-      if (!a.lastWorn && b.lastWorn) return -1
-      if (a.lastWorn && !b.lastWorn) return 1
-      return (a.lastWorn || '').localeCompare(b.lastWorn || '')
+    // Group items by category to ensure full coverage
+    var byCategory = {}
+    items.forEach(function(i) {
+      var cat = i.category || 'Other'
+      if (!byCategory[cat]) byCategory[cat] = []
+      byCategory[cat].push(i)
     })
-    itemsToSend = anchors.concat(rest.slice(0, 40 - anchors.length))
-    // Keep item descriptions short to save tokens
-    const r=await fetch('/api/ai-outfit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    
+    // Shuffle each category for variety
+    Object.keys(byCategory).forEach(function(cat) {
+      for (var i = byCategory[cat].length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1))
+        var tmp = byCategory[cat][i]
+        byCategory[cat][i] = byCategory[cat][j]
+        byCategory[cat][j] = tmp
+      }
+    })
+    
+    // Build send list: anchors first, then items from each category
+    var anchors = anchorItemIds ? items.filter(i => anchorItemIds.includes(i.id)) : []
+    var anchorIdSet = new Set(anchorItemIds || [])
+    var itemsToSend = anchors.slice()
+    
+    // Ensure every category is represented (up to 15 per category)
+    var essentialCats = ['Tops','Bottoms','Dresses','Outerwear','Shoes']
+    var otherCats = Object.keys(byCategory).filter(c => essentialCats.indexOf(c) === -1)
+    
+    essentialCats.concat(otherCats).forEach(function(cat) {
+      if (!byCategory[cat]) return
+      var catItems = byCategory[cat].filter(i => !anchorIdSet.has(i.id))
+      itemsToSend = itemsToSend.concat(catItems.slice(0, 15))
+    })
+
+    var r = await fetch('/api/ai-outfit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
       items:itemsToSend.map(i=>({id:i.id,name:i.name,category:i.category,color:i.color,style:i.style||'',accessoryType:i.accessoryType||'',lastWorn:i.lastWorn||''})),
-      occasion:occasion||'',person:person||'',weather:weather||null,recentOutfitNames:(recentNames||[]).slice(0,5),anchorItemIds:anchorItemIds||[],photoDescription:photoDescription||null
+      occasion:occasion||'',person:person||'',weather:weather||null,recentOutfitNames:(recentNames||[]).slice(0,8),anchorItemIds:anchorItemIds||[],photoDescription:photoDescription||null
     })})
-    if(!r.ok){console.error('AI outfit response:',r.status);var errText=await r.text().catch(()=>'');return{error:'API returned '+r.status+': '+errText}}
+    if(!r.ok){console.error('AI outfit response:',r.status);var errText=await r.text().catch(function(){return''});return{error:'API returned '+r.status+': '+errText}}
     var data=await r.json()
     if(data.error){console.error('AI outfit error:',data.error);return{error:data.error}}
     return data
