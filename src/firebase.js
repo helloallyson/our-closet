@@ -44,3 +44,20 @@ export async function deleteOutfit(outfitId) {
   try { await deleteDoc(doc(db, 'closet-outfits', outfitId)) }
   catch (e) { console.error('Delete outfit failed:', e); throw e }
 }
+export async function loadWeekPlan(person, weekId) {
+  try {
+    const q = query(collection(db, 'closet-week-plans'), where('person', '==', person))
+    const snapshot = await getDocs(q)
+    const plans = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+    if (weekId) return plans.find(p => p.id === weekId) || null
+    return plans.sort((a, b) => (b.weekStart || '').localeCompare(a.weekStart || ''))
+  } catch (e) { console.error('Load week plan failed:', e); return weekId ? null : [] }
+}
+export async function saveWeekPlan(plan) {
+  try { await setDoc(doc(db, 'closet-week-plans', plan.id), plan) }
+  catch (e) { console.error('Save week plan failed:', e); throw e }
+}
+export async function deleteWeekPlan(planId) {
+  try { await deleteDoc(doc(db, 'closet-week-plans', planId)) }
+  catch (e) { console.error('Delete week plan failed:', e); throw e }
+}

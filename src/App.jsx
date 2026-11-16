@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { removeBackground } from '@imgly/background-removal'
 import {
   loadItems as fbLoadItems, saveItem as fbSaveItem, deleteItem as fbDeleteItem,
-  loadOutfits as fbLoadOutfits, saveOutfit as fbSaveOutfit, deleteOutfit as fbDeleteOutfit
+  loadOutfits as fbLoadOutfits, saveOutfit as fbSaveOutfit, deleteOutfit as fbDeleteOutfit,
+  loadWeekPlan as fbLoadWeekPlan, saveWeekPlan as fbSaveWeekPlan
 } from './firebase'
 
 const CATEGORIES = ['All','Tops','Bottoms','Dresses','Outerwear','Shoes','Accessories','Activewear','Swimwear','Sleepwear','Other']
@@ -22,6 +23,94 @@ async function removeBg(d){try{const b=await removeBackground(d);return new Prom
 async function fetchWeather(lat,lon){try{const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current=temperature_2m,apparent_temperature,weathercode,windspeed_10m&temperature_unit=fahrenheit&windspeed_unit=mph');const d=await r.json();const c=d.current;return{temp:Math.round(c.temperature_2m),feelsLike:Math.round(c.apparent_temperature),code:c.weathercode,description:WEATHER_CODES[c.weathercode]||'Unknown',icon:getWeatherIcon(c.weathercode),wind:Math.round(c.windspeed_10m)}}catch(e){return null}}
 
 async function searchCity(q){try{const r=await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(q)+'&count=5&language=en&format=json');const d=await r.json();return(d.results||[]).map(r=>({name:r.name+', '+(r.admin1||'')+', '+r.country,lat:r.latitude,lon:r.longitude}))}catch(e){return[]}}
+
+function getWeekStart(date) {
+  const d = new Date(date)
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+  const mon = new Date(d.setDate(diff))
+  return new Date(mon.getFullYear(), mon.getMonth(), mon.getDate())
+}
+
+function getWeekDates(startDate) {
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
+  const fullDays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+  return days.map((d, i) => {
+    const date = new Date(startDate)
+    date.setDate(date.getDate() + i)
+    return { short: d, full: fullDays[i], date: date.toISOString().split('T')[0], dateObj: date }
+  })
+}
+
+function getWeekId(person, startDate) {
+  const d = new Date(startDate)
+  const year = d.getFullYear()
+  const janFirst = new Date(year, 0, 1)
+  const dayOfYear = Math.floor((d - janFirst) / 86400000)
+  const weekNum = Math.ceil((dayOfYear + janFirst.getDay() + 1) / 7)
+  return person + '-' + year + '-W' + String(weekNum).padStart(2, '0')
+}
+
+async function fetchWeekForecast(lat, lon) {
+  try {
+    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&daily=temperature_2m_max,temperature_2m_min,weathercode&temperature_unit=fahrenheit&timezone=auto')
+    const d = await r.json()
+    if (!d.daily) return []
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+    return d.daily.time.map((date, i) => ({
+      date: date,
+      day: days[new Date(date + 'T12:00:00').getDay()],
+      high: Math.round(d.daily.temperature_2m_max[i]),
+      low: Math.round(d.daily.temperature_2m_min[i]),
+      code: d.daily.weathercode[i],
+      description: WEATHER_CODES[d.daily.weathercode[i]] || 'Unknown',
+      icon: getWeatherIcon(d.daily.weathercode[i])
+    }))
+  } catch (e) { console.error('Week forecast error:', e); return [] }
+}
+
+async function aiPlanWeek(items, person, weather, weekDates, context, existingDays) {
+  try {
+    var byCategory = {}
+    items.forEach(function(i) {
+      var cat = i.category || 'Other'
+      if (!byCategory[cat]) byCategory[cat] = []
+      byCategory[cat].push(i)
+    })
+    Object.keys(byCategory).forEach(function(cat) {
+      for (var i = byCategory[cat].length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1))
+        var tmp = byCategory[cat][i]
+        byCategory[cat][i] = byCategory[cat][j]
+        byCategory[cat][j] = tmp
+      }
+    })
+    var itemsToSend = []
+    var essentialCats = ['Tops','Bottoms','Dresses','Outerwear','Shoes']
+    var otherCats = Object.keys(byCategory).filter(c => essentialCats.indexOf(c) === -1)
+    essentialCats.concat(otherCats).forEach(function(cat) {
+      if (!byCategory[cat]) return
+      itemsToSend = itemsToSend.concat(byCategory[cat].slice(0, 20))
+    })
+
+    var r = await fetch('/api/ai-week', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        items: itemsToSend.map(i => ({ id: i.id, name: i.name, category: i.category, color: i.color, style: i.style || '', accessoryType: i.accessoryType || '', seasons: i.seasons || [], lastWorn: i.lastWorn || '' })),
+        person: person,
+        weather: weather || [],
+        weekDates: weekDates || '',
+        context: context || '',
+        existingDays: existingDays || []
+      })
+    })
+    if (!r.ok) { var errText = await r.text().catch(function() { return '' }); return { error: 'API returned ' + r.status + ': ' + errText } }
+    var data = await r.json()
+    if (data.error) return { error: data.error }
+    return data
+  } catch (e) { console.error('AI week plan error:', e); return { error: e.message } }
+}
 
 async function aiTagClothing(img){try{const b=img.split(',')[1];const m=img.includes('image/png')?'image/png':'image/jpeg';const r=await fetch('/api/ai-tag',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:b,mediaType:m})});if(!r.ok)throw new Error('fail');return await r.json()}catch(e){return null}}
 
@@ -81,7 +170,7 @@ function PersonSwitcher({person,setPerson}){
 }
 
 function NavTabs({tab,setTab,itemCount,outfitCount}){
-  const tabs=[{id:'closet',label:'Closet',icon:'\uD83D\uDC57',count:itemCount},{id:'add',label:'Add',icon:'\uD83D\uDCF8'},{id:'style',label:'Style',icon:'\u2728'},{id:'outfits',label:'Outfits',icon:'\uD83D\uDC5A',count:outfitCount}]
+  const tabs=[{id:'closet',label:'Closet',icon:'\uD83D\uDC57',count:itemCount},{id:'add',label:'Add',icon:'\uD83D\uDCF8'},{id:'plan',label:'Plan',icon:'\uD83D\uDCC5'},{id:'style',label:'Style',icon:'\u2728'},{id:'outfits',label:'Outfits',icon:'\uD83D\uDC5A',count:outfitCount}]
   return(<div style={{display:'flex',gap:2,borderBottom:'2px solid #f0eee9',marginBottom:16}}>
     {tabs.map(t=>(<button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:'10px 4px',border:'none',borderBottom:tab===t.id?'2px solid #2d2926':'2px solid transparent',background:'none',cursor:'pointer',fontSize:12,fontWeight:tab===t.id?700:400,color:tab===t.id?'#2d2926':'#a09a93',marginBottom:-2}}>{t.icon} {t.label}{t.count!=null?' ('+t.count+')':''}</button>))}
   </div>)
@@ -455,6 +544,249 @@ function MyOutfitsView({items,outfits,onUpdateOutfit,onDeleteOutfit}){
   </div>)
 }
 
+// ── Weekly Plan View ──
+function WeeklyPlanView({items,person,outfits,weather,weatherLocation,onShowToast}){
+  const [weekOffset,setWeekOffset]=useState(0)
+  const [plan,setPlan]=useState(null)
+  const [loading,setLoading]=useState(true)
+  const [aiLoading,setAiLoading]=useState(false)
+  const [pickingDay,setPickingDay]=useState(null)
+  const [pickMode,setPickMode]=useState('outfits') // outfits | items
+  const [selectedItems,setSelectedItems]=useState([])
+  const [weekContext,setWeekContext]=useState('')
+  const [showContextInput,setShowContextInput]=useState(false)
+  const [forecast,setForecast]=useState([])
+
+  const today = new Date()
+  const weekStart = getWeekStart(new Date(today.getFullYear(), today.getMonth(), today.getDate() + weekOffset * 7))
+  const weekDates = getWeekDates(weekStart)
+  const weekId = getWeekId(person, weekStart)
+  const weekLabel = weekDates[0].dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' - ' + weekDates[6].dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
+  // Load plan for current week
+  useEffect(() => {
+    setLoading(true)
+    fbLoadWeekPlan(person, weekId).then(p => {
+      setPlan(p)
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [person, weekId])
+
+  // Load weekly forecast
+  useEffect(() => {
+    if (weatherLocation && weatherLocation.lat) {
+      fetchWeekForecast(weatherLocation.lat, weatherLocation.lon).then(f => { if (f && f.length > 0) setForecast(f) })
+    }
+  }, [weatherLocation])
+
+  const getDayPlan = (dayFull) => {
+    if (!plan || !plan.days) return null
+    return plan.days.find(d => d.day === dayFull) || null
+  }
+
+  const getDayForecast = (dateStr) => {
+    return forecast.find(f => f.date === dateStr) || null
+  }
+
+  const saveDayOutfit = async (dayFull, dateStr, itemIds, outfitName, reasoning) => {
+    var updatedPlan = plan ? { ...plan } : { id: weekId, person: person, weekStart: weekStart.toISOString().split('T')[0], days: [] }
+    var existingDays = (updatedPlan.days || []).filter(d => d.day !== dayFull)
+    existingDays.push({ day: dayFull, date: dateStr, itemIds: itemIds, outfitName: outfitName || 'My Outfit', reasoning: reasoning || '', aiGenerated: false })
+    updatedPlan.days = existingDays
+    try {
+      await fbSaveWeekPlan(updatedPlan)
+      setPlan(updatedPlan)
+      onShowToast(dayFull + ' outfit saved!')
+    } catch (e) { onShowToast('Failed to save') }
+  }
+
+  const clearDay = async (dayFull) => {
+    if (!plan || !plan.days) return
+    var updatedPlan = { ...plan, days: plan.days.filter(d => d.day !== dayFull) }
+    try {
+      await fbSaveWeekPlan(updatedPlan)
+      setPlan(updatedPlan)
+      onShowToast(dayFull + ' cleared')
+    } catch (e) { onShowToast('Failed to clear') }
+  }
+
+  const handleAiPlanWeek = async () => {
+    if (items.length < 3) { onShowToast('Need at least 3 items to plan a week'); return }
+    setAiLoading(true)
+    // Build existing days info so AI skips them
+    var existingDays = []
+    if (plan && plan.days) {
+      plan.days.forEach(d => {
+        var dayItems = (d.itemIds || []).map(id => items.find(i => i.id === id)).filter(Boolean)
+        existingDays.push({ day: d.day, outfitName: d.outfitName || '', itemNames: dayItems.map(i => i.name) })
+      })
+    }
+    // Get weather for the week
+    var weatherData = forecast.filter(f => weekDates.some(wd => wd.date === f.date))
+
+    var result = await aiPlanWeek(items, person === 'ally' ? 'Ally' : 'Gerry', weatherData, weekLabel, weekContext, existingDays)
+
+    if (result && !result.error && Array.isArray(result)) {
+      var updatedPlan = plan ? { ...plan } : { id: weekId, person: person, weekStart: weekStart.toISOString().split('T')[0], days: [] }
+      var existingDaysList = (updatedPlan.days || []).slice()
+      result.forEach(r => {
+        var dayInfo = weekDates.find(wd => wd.full === r.day)
+        if (!dayInfo) return
+        existingDaysList = existingDaysList.filter(d => d.day !== r.day)
+        existingDaysList.push({ day: r.day, date: dayInfo.date, itemIds: r.itemIds || [], outfitName: r.outfitName || '', reasoning: r.reasoning || '', aiGenerated: true })
+      })
+      updatedPlan.days = existingDaysList
+      try {
+        await fbSaveWeekPlan(updatedPlan)
+        setPlan(updatedPlan)
+        onShowToast('Week planned! ' + result.length + ' outfits created')
+      } catch (e) { onShowToast('Failed to save plan') }
+    } else {
+      onShowToast(result && result.error ? result.error : 'AI had trouble planning. Try again!')
+    }
+    setAiLoading(false)
+  }
+
+  // Pick from saved outfits
+  const handlePickOutfit = (outfit) => {
+    if (!pickingDay) return
+    saveDayOutfit(pickingDay.full, pickingDay.date, outfit.itemIds, outfit.name, outfit.notes || '')
+    setPickingDay(null)
+  }
+
+  // Pick from individual items
+  const toggleItemSelect = (item) => {
+    setSelectedItems(prev => prev.find(s => s.id === item.id) ? prev.filter(s => s.id !== item.id) : [...prev, item])
+  }
+
+  const confirmItemPick = () => {
+    if (!pickingDay || selectedItems.length === 0) return
+    saveDayOutfit(pickingDay.full, pickingDay.date, selectedItems.map(i => i.id), selectedItems.map(i => i.name).join(' + '), '')
+    setPickingDay(null)
+    setSelectedItems([])
+  }
+
+  // Picking mode view
+  if (pickingDay) {
+    return (<div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+        <button onClick={()=>{setPickingDay(null);setSelectedItems([])}} style={{border:'none',background:'none',fontSize:14,color:'#6b665f',cursor:'pointer',fontWeight:600}}>{'←'} Back</button>
+        <div style={{fontSize:16,fontWeight:700,color:'#2d2926'}}>Pick for {pickingDay.full}</div>
+        <div style={{width:40}}/>
+      </div>
+
+      <div style={{display:'flex',gap:6,marginBottom:16}}>
+        <button onClick={()=>{setPickMode('outfits');setSelectedItems([])}} style={{flex:1,padding:'10px',border:pickMode==='outfits'?'2px solid #2d2926':'2px solid #e0ddd7',borderRadius:10,background:pickMode==='outfits'?'#2d2926':'#fff',color:pickMode==='outfits'?'#fff':'#6b665f',fontSize:13,fontWeight:600,cursor:'pointer'}}>Saved Outfits</button>
+        <button onClick={()=>{setPickMode('items');setSelectedItems([])}} style={{flex:1,padding:'10px',border:pickMode==='items'?'2px solid #2d2926':'2px solid #e0ddd7',borderRadius:10,background:pickMode==='items'?'#2d2926':'#fff',color:pickMode==='items'?'#fff':'#6b665f',fontSize:13,fontWeight:600,cursor:'pointer'}}>Pick Items</button>
+      </div>
+
+      {pickMode==='outfits'&&(<div>
+        {outfits.length===0?(<div style={{textAlign:'center',padding:'30px 20px',color:'#a09a93',fontSize:13}}>No saved outfits yet. Try picking individual items or use AI to plan!</div>)
+        :outfits.map(outfit=>{
+          var outfitItems = (outfit.itemIds||[]).map(id=>items.find(i=>i.id===id)).filter(Boolean)
+          return(<div key={outfit.id} onClick={()=>handlePickOutfit(outfit)} style={{background:'#faf9f7',borderRadius:12,padding:14,marginBottom:10,border:'1px solid #f0eee9',cursor:'pointer'}}>
+            <div style={{fontSize:14,fontWeight:700,color:'#2d2926',marginBottom:6}}>{outfit.name}</div>
+            <div style={{display:'flex',gap:6,overflowX:'auto'}}>
+              {outfitItems.map(oi=>(<div key={oi.id} style={{width:48,height:48,borderRadius:8,overflow:'hidden',background:'#eeedea',flexShrink:0}}>
+                {oi.image?<img src={oi.image} alt={oi.name} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}}>{'👕'}</div>}
+              </div>))}
+            </div>
+            {outfit.occasion&&<div style={{fontSize:11,color:'#a09a93',marginTop:6}}>{outfit.occasion}</div>}
+          </div>)
+        })}
+      </div>)}
+
+      {pickMode==='items'&&(<div>
+        {selectedItems.length>0&&(<div style={{background:'#f0eee9',borderRadius:10,padding:12,marginBottom:12}}>
+          <div style={{fontSize:12,fontWeight:600,color:'#2d2926',marginBottom:6}}>Selected ({selectedItems.length}):</div>
+          <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:8}}>
+            {selectedItems.map(si=>(<div key={si.id} style={{display:'flex',alignItems:'center',gap:4,background:'#fff',borderRadius:6,padding:'3px 8px',fontSize:11,color:'#2d2926'}}>
+              {si.name} <span onClick={()=>toggleItemSelect(si)} style={{cursor:'pointer',color:'#c44',fontWeight:700}}>x</span>
+            </div>))}
+          </div>
+          <button onClick={confirmItemPick} style={{width:'100%',padding:'10px',border:'none',borderRadius:8,background:'#2d2926',color:'#fff',fontWeight:700,fontSize:13,cursor:'pointer'}}>Assign to {pickingDay.full}</button>
+        </div>)}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:8}}>
+          {items.map(item=><ClothingCard key={item.id} item={item} selectable selected={!!selectedItems.find(s=>s.id===item.id)} onSelect={toggleItemSelect}/>)}
+        </div>
+      </div>)}
+    </div>)
+  }
+
+  if (loading) return(<div style={{textAlign:'center',padding:40,color:'#a09a93'}}><span className="spinner" style={{borderColor:'rgba(160,154,147,.3)',borderTopColor:'#a09a93'}}/><div style={{marginTop:12}}>Loading plan...</div></div>)
+
+  return(<div>
+    {/* Week Navigation */}
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+      <button onClick={()=>setWeekOffset(w=>w-1)} style={{border:'none',background:'none',fontSize:20,cursor:'pointer',color:'#2d2926',padding:'4px 8px'}}>{'‹'}</button>
+      <div style={{textAlign:'center'}}>
+        <div style={{fontSize:15,fontWeight:700,color:'#2d2926'}}>{weekLabel}</div>
+        {weekOffset!==0&&<button onClick={()=>setWeekOffset(0)} style={{border:'none',background:'none',fontSize:11,color:'#4a90d9',cursor:'pointer',fontWeight:600,marginTop:2}}>Jump to this week</button>}
+      </div>
+      <button onClick={()=>setWeekOffset(w=>w+1)} style={{border:'none',background:'none',fontSize:20,cursor:'pointer',color:'#2d2926',padding:'4px 8px'}}>{'›'}</button>
+    </div>
+
+    {/* AI Plan Button */}
+    <div style={{background:'linear-gradient(135deg,#2d2926,#4a443d)',borderRadius:14,padding:16,marginBottom:16,color:'#fff'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:showContextInput?10:0}}>
+        <div>
+          <div style={{fontSize:15,fontWeight:700}}>{'✨'} AI Week Planner</div>
+          <div style={{fontSize:11,opacity:.7,marginTop:2}}>Auto-generate outfits for empty days</div>
+        </div>
+        <div style={{display:'flex',gap:6}}>
+          <button onClick={()=>setShowContextInput(!showContextInput)} style={{padding:'8px 10px',border:'1px solid rgba(255,255,255,.2)',borderRadius:8,background:'rgba(255,255,255,.1)',color:'#fff',fontSize:18,cursor:'pointer',lineHeight:1}}>{'⚙️'}</button>
+          <button onClick={handleAiPlanWeek} disabled={aiLoading||items.length<3} style={{padding:'8px 18px',border:'none',borderRadius:8,fontWeight:700,fontSize:13,cursor:aiLoading?'default':'pointer',background:aiLoading?'#6b665f':'#fff',color:'#2d2926'}}>{aiLoading?'Planning...':'Plan My Week'}</button>
+        </div>
+      </div>
+      {showContextInput&&(<div style={{marginTop:8}}>
+        <input value={weekContext} onChange={e=>setWeekContext(e.target.value)} placeholder="Any context? e.g. work from home Mon/Fri, date night Saturday..." style={{width:'100%',padding:'10px 12px',border:'1px solid rgba(255,255,255,.2)',borderRadius:8,background:'rgba(255,255,255,.1)',color:'#fff',fontSize:13,outline:'none',boxSizing:'border-box'}}/>
+      </div>)}
+    </div>
+
+    {/* Day Cards */}
+    {weekDates.map(wd => {
+      var dayPlan = getDayPlan(wd.full)
+      var dayForecast = getDayForecast(wd.date)
+      var dayItems = dayPlan ? (dayPlan.itemIds || []).map(id => items.find(i => i.id === id)).filter(Boolean) : []
+      var isToday = wd.date === today.toISOString().split('T')[0]
+      var isPast = wd.date < today.toISOString().split('T')[0]
+
+      return(<div key={wd.date} style={{background:isToday?'#f7f5f0':'#faf9f7',borderRadius:12,padding:14,marginBottom:8,border:isToday?'2px solid #2d2926':'1px solid #f0eee9',opacity:isPast?.65:1}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:dayItems.length>0?10:0}}>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <div>
+              <div style={{fontSize:14,fontWeight:700,color:'#2d2926'}}>{wd.short}{isToday?' (Today)':''}</div>
+              <div style={{fontSize:11,color:'#a09a93'}}>{wd.dateObj.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
+            </div>
+            {dayForecast&&(<div style={{fontSize:11,color:'#6b665f',display:'flex',alignItems:'center',gap:3}}>
+              <span>{dayForecast.icon}</span>
+              <span>{dayForecast.high}/{dayForecast.low}F</span>
+            </div>)}
+          </div>
+          <div style={{display:'flex',gap:6}}>
+            {dayPlan&&<button onClick={()=>clearDay(wd.full)} style={{border:'none',background:'none',color:'#c44',fontSize:11,cursor:'pointer'}}>Clear</button>}
+            <button onClick={()=>{setPickingDay(wd);setPickMode('outfits');setSelectedItems([])}} style={{padding:'6px 12px',border:'1px solid #e0ddd7',borderRadius:8,background:'#fff',fontSize:11,fontWeight:600,color:'#2d2926',cursor:'pointer'}}>{dayPlan?'Change':'+ Add'}</button>
+          </div>
+        </div>
+
+        {dayItems.length > 0 ? (<div>
+          <div style={{fontSize:13,fontWeight:600,color:'#2d2926',marginBottom:6}}>
+            {dayPlan.outfitName}
+            {dayPlan.aiGenerated&&<span style={{fontSize:10,color:'#8B6914',marginLeft:6}}>{'✨'} AI</span>}
+          </div>
+          <div style={{display:'flex',gap:6,overflowX:'auto'}}>
+            {dayItems.map(di=>(<div key={di.id} style={{width:48,height:48,borderRadius:8,overflow:'hidden',background:'#eeedea',flexShrink:0}}>
+              {di.image?<img src={di.image} alt={di.name} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}}>{'👕'}</div>}
+            </div>))}
+          </div>
+          {dayPlan.reasoning&&<div style={{fontSize:11,color:'#6b665f',marginTop:6,lineHeight:1.4}}>{dayPlan.reasoning}</div>}
+        </div>)
+        :(<div style={{fontSize:12,color:'#b0aaa3',textAlign:'center',padding:'6px 0'}}>No outfit planned</div>)}
+      </div>)
+    })}
+  </div>)
+}
+
 // ── Main App ──
 export default function App(){
   const [person,setPerson]=useState('ally')
@@ -503,6 +835,7 @@ export default function App(){
       </div>)}</div>)}
 
       {tab==='add'&&<AddItemView person={person} onAdd={addItem}/>}
+      {tab==='plan'&&<WeeklyPlanView items={items} person={person} outfits={outfits} weather={weather} weatherLocation={weatherLocation} onShowToast={showToast}/>}
       {tab==='style'&&<StyleView items={items} person={person} outfits={outfits} onSaveOutfit={handleSaveOutfit} weather={weather} location={weatherLocation} onChangeLocation={loc=>{setWeatherLocation(loc);setWeather(null)}} onShowToast={showToast}/>}
       {tab==='outfits'&&<MyOutfitsView items={items} outfits={outfits} onUpdateOutfit={handleUpdateOutfit} onDeleteOutfit={handleDeleteOutfit}/>}
     </div>)}
