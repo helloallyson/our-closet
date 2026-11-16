@@ -18,11 +18,15 @@ export default async function handler(req) {
     const today = new Date().toISOString().split('T')[0]
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
+    const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
     const itemSummaries = items.map(i => {
       let line = '[' + i.id + '] ' + i.name + ' (' + i.category
       if (i.accessoryType) line += '/' + i.accessoryType
       line += ', ' + i.color
-      if (i.lastWorn && i.lastWorn >= twoWeeksAgo) line += ', RECENT'
+      if (i.style) line += ', ' + i.style
+      if (i.dateAdded && i.dateAdded >= oneMonthAgo) line += ', NEW ADDITION'
+      if (i.lastWorn && i.lastWorn >= twoWeeksAgo) line += ', RECENTLY WORN'
       if (anchorItemIds && anchorItemIds.includes(i.id)) line += ', MUST INCLUDE'
       line += ')'
       return line
@@ -59,16 +63,27 @@ OUTFIT COMPLETENESS (NON-NEGOTIABLE):
 - Athletic leggings (Activewear/Bottoms) need a top that makes sense with them, not a random formal blouse.
 - NEVER suggest an outfit that is just a shirt with no bottoms, or bottoms with no top.
 
+LAYERING RULES (VERY IMPORTANT):
+- Cardigans, sweaters, jackets, blazers, and any open-front or layering piece from Outerwear MUST be paired with a base layer top underneath (a t-shirt, tank, cami, blouse, etc. from the Tops category).
+- NEVER suggest a cardigan or sweater as the ONLY top. Always include something to wear under it.
+- If the wardrobe has a suitable undershirt, tee, or tank, include it in the outfit alongside the layering piece.
+- The only exception is a thick, closed crewneck/turtleneck sweater that is clearly worn alone as a top.
+
 STYLING INTELLIGENCE:
 - COLOR COORDINATION: Use complementary pairs (navy+cream, black+white, olive+tan, burgundy+gray), analogous colors, or intentional monochrome. Avoid random clashing.
 - STYLE MATCHING: All pieces should share a vibe. Casual with casual, dressy with dressy. Don't mix gym wear with formal pieces unless it's intentional streetwear.
 - PROPORTION: Oversized top = slimmer bottom. Fitted top = can go wider on bottom. Balance the silhouette.
 - SHOE MATCHING: Sneakers for casual/sporty, boots for fall/edgy, sandals for summer, heels/flats for dressy. The shoes set the tone.
 
+NEW ADDITIONS:
+- Items marked NEW ADDITION were recently added to the wardrobe. Actively try to incorporate them! The user added them because they want to wear them.
+- Give new items priority over older pieces when they fit the occasion and style.
+
 VARIETY:
 - Look at ALL the items provided. Don't fixate on one or two pieces.
 - ACTIVELY choose items you haven't suggested before. Dig into the full wardrobe.
 - Each outfit should feel genuinely different from previous ones.
+- Items marked RECENTLY WORN should be deprioritized unless they're the best fit.
 
 ACCURACY:
 - Use exact item names from the wardrobe. Never invent names.
