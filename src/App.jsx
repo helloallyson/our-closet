@@ -77,13 +77,18 @@ async function aiPlanWeek(items, person, weather, weekDates, context, existingDa
       if (!byCategory[cat]) byCategory[cat] = []
       byCategory[cat].push(i)
     })
+    var thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     Object.keys(byCategory).forEach(function(cat) {
-      for (var i = byCategory[cat].length - 1; i > 0; i--) {
+      // Sort: new additions first, then shuffle the rest
+      var newItems = byCategory[cat].filter(i => i.dateAdded && i.dateAdded >= thirtyDaysAgo)
+      var olderItems = byCategory[cat].filter(i => !i.dateAdded || i.dateAdded < thirtyDaysAgo)
+      for (var i = olderItems.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1))
-        var tmp = byCategory[cat][i]
-        byCategory[cat][i] = byCategory[cat][j]
-        byCategory[cat][j] = tmp
+        var tmp = olderItems[i]
+        olderItems[i] = olderItems[j]
+        olderItems[j] = tmp
       }
+      byCategory[cat] = newItems.concat(olderItems)
     })
     var itemsToSend = []
     var essentialCats = ['Tops','Bottoms','Dresses','Outerwear','Shoes']
@@ -97,7 +102,7 @@ async function aiPlanWeek(items, person, weather, weekDates, context, existingDa
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        items: itemsToSend.map(i => ({ id: i.id, name: i.name, category: i.category, color: i.color, style: i.style || '', accessoryType: i.accessoryType || '', seasons: i.seasons || [], lastWorn: i.lastWorn || '' })),
+        items: itemsToSend.map(i => ({ id: i.id, name: i.name, category: i.category, color: i.color, style: i.style || '', accessoryType: i.accessoryType || '', seasons: i.seasons || [], lastWorn: i.lastWorn || '', dateAdded: i.dateAdded || '' })),
         person: person,
         weather: weather || [],
         weekDates: weekDates || '',
@@ -124,16 +129,20 @@ async function aiSuggestOutfit(items,occasion,person,weather,recentNames,anchorI
       byCategory[cat].push(i)
     })
     
-    // Shuffle each category for variety
+    // Sort: new additions first, then shuffle older items for variety
+    var thirtyDaysAgo2 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     Object.keys(byCategory).forEach(function(cat) {
-      for (var i = byCategory[cat].length - 1; i > 0; i--) {
+      var newItems = byCategory[cat].filter(i => i.dateAdded && i.dateAdded >= thirtyDaysAgo2)
+      var olderItems = byCategory[cat].filter(i => !i.dateAdded || i.dateAdded < thirtyDaysAgo2)
+      for (var i = olderItems.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1))
-        var tmp = byCategory[cat][i]
-        byCategory[cat][i] = byCategory[cat][j]
-        byCategory[cat][j] = tmp
+        var tmp = olderItems[i]
+        olderItems[i] = olderItems[j]
+        olderItems[j] = tmp
       }
+      byCategory[cat] = newItems.concat(olderItems)
     })
-    
+
     // Build send list: anchors first, then items from each category
     var anchors = anchorItemIds ? items.filter(i => anchorItemIds.includes(i.id)) : []
     var anchorIdSet = new Set(anchorItemIds || [])
@@ -150,7 +159,7 @@ async function aiSuggestOutfit(items,occasion,person,weather,recentNames,anchorI
     })
 
     var r = await fetch('/api/ai-outfit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-      items:itemsToSend.map(i=>({id:i.id,name:i.name,category:i.category,color:i.color,style:i.style||'',accessoryType:i.accessoryType||'',lastWorn:i.lastWorn||''})),
+      items:itemsToSend.map(i=>({id:i.id,name:i.name,category:i.category,color:i.color,style:i.style||'',accessoryType:i.accessoryType||'',lastWorn:i.lastWorn||'',dateAdded:i.dateAdded||''})),
       occasion:occasion||'',person:person||'',weather:weather||null,recentOutfitNames:(recentNames||[]).slice(0,8),anchorItemIds:anchorItemIds||[],photoDescription:photoDescription||null
     })})
     if(!r.ok){console.error('AI outfit response:',r.status);var errText=await r.text().catch(function(){return''});return{error:'API returned '+r.status+': '+errText}}
