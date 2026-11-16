@@ -89,7 +89,13 @@ WEEKLY PLANNING INTELLIGENCE:
 - VARIETY IS KEY: Don't repeat the same top, bottom, or shoes on consecutive days. Spread items across the week.
 - COLOR STORY: Create a cohesive weekly palette. Mix statement pieces with basics. Not every day needs to pop. Each outfit should be color-coordinated on its own.
 - LIFESTYLE FIT: Weekdays can lean more polished/practical. Weekends can be more relaxed or fun.
-- WEATHER AWARE: Match layers and fabrics to the daily forecast. Heavier outfits for cold days, lighter for warm.
+- WEATHER AWARE (NON-NEGOTIABLE):
+  * Below 50F: Closed-toe shoes ONLY (boots, sneakers, flats). NO sandals or open-toe. Layers/sweaters/jackets required.
+  * 50-65F: Closed-toe shoes strongly preferred. Light layers (cardigan, light jacket).
+  * 65-75F: Most shoes work. Light layers optional.
+  * Above 75F: Sandals fine, lighter fabrics, skip heavy layers.
+  * Rainy/windy: No sandals. Boots or sturdy closed-toe shoes.
+  * ALWAYS match the outfit to that day's forecast temperature. Cold day = warm outfit. Hot day = light outfit.
 - SEASON AWARE: If items have season tags, prefer items that match the current season.
 - RECENTLY WORN: Items marked RECENTLY WORN should be deprioritized unless the wardrobe is small.
 - USE THE FULL WARDROBE: Don't just pick favorites. Dig into underused pieces.
@@ -102,6 +108,8 @@ Before outputting each day's outfit, verify:
 4. If there's a cardigan/sweater/jacket, is there ALSO a base layer top? If not, ADD ONE.
 5. Any clashing patterns (two busy prints)? SWAP one for a solid.
 6. Any clashing colors (red+pink, orange+red)? SWAP one piece.
+7. Is that day below 60F? No sandals or open-toe shoes — SWAP for closed-toe.
+8. Is that day above 75F? No heavy layers — REMOVE them.
 An outfit missing bottoms or shoes is NEVER acceptable. Fix before responding.
 
 ACCURACY:
