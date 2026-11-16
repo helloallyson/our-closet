@@ -97,6 +97,16 @@ VARIETY:
 - Each outfit should feel genuinely different from previous ones.
 - Items marked RECENTLY WORN should be deprioritized unless they're the best fit.
 
+FINAL CHECKLIST (DO THIS BEFORE RESPONDING):
+Before you output your JSON, mentally verify:
+1. Does this outfit have a Top (from Tops category)? If not, ADD ONE.
+2. Does this outfit have a Bottom (from Bottoms category) OR a Dress? If not, ADD ONE.
+3. Does this outfit have Shoes? If not, ADD SHOES.
+4. If there's a cardigan/sweater/jacket, is there ALSO a base layer top underneath? If not, ADD ONE.
+5. Are there any clashing patterns (two busy prints)? If so, SWAP one for a solid.
+6. Are there any clashing colors (red+pink, orange+red, etc.)? If so, SWAP one piece.
+If ANY check fails, fix it before responding. An outfit missing bottoms or shoes is NEVER acceptable.
+
 ACCURACY:
 - Use exact item names from the wardrobe. Never invent names.
 - Never include bracket IDs like [abc123] in your reasoning text. Only use human-readable item names.
