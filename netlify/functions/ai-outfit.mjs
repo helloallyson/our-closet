@@ -70,7 +70,19 @@ LAYERING RULES (VERY IMPORTANT):
 - The only exception is a thick, closed crewneck/turtleneck sweater that is clearly worn alone as a top.
 
 STYLING INTELLIGENCE:
-- COLOR COORDINATION: Use complementary pairs (navy+cream, black+white, olive+tan, burgundy+gray), analogous colors, or intentional monochrome. Avoid random clashing.
+- COLOR COORDINATION: Use complementary pairs (navy+cream, black+white, olive+tan, burgundy+gray), analogous colors, or intentional monochrome. Avoid random clashing. When in doubt, pair a bold/colorful piece with a NEUTRAL (black, white, cream, gray, navy, tan, denim).
+- PATTERN MIXING RULES (VERY IMPORTANT):
+  * NEVER pair two busy patterns together (e.g. polka dots + stripes, floral + plaid, animal print + geometric). This looks chaotic.
+  * If one piece has a bold pattern, the other pieces should be SOLID colors that pull from one of the pattern's colors.
+  * The only acceptable pattern mix is a subtle pattern (thin stripes, tiny dots) with a bolder one, and ONLY if they share a color.
+  * When a patterned item has multiple colors, pick companion pieces in ONE of those colors, not a competing color.
+- COLOR CLASH PREVENTION:
+  * Red + pink: NO (unless one is a neutral-leaning blush/nude pink).
+  * Orange + red: NO.
+  * Red + bright green: NO.
+  * Neon + neon: NO.
+  * If two items are both bold/saturated colors, at least one should be a neutral instead.
+  * Safe formula: 1 statement piece + neutrals, OR 2 complementary colors + 1 neutral.
 - STYLE MATCHING: All pieces should share a vibe. Casual with casual, dressy with dressy. Don't mix gym wear with formal pieces unless it's intentional streetwear.
 - PROPORTION: Oversized top = slimmer bottom. Fitted top = can go wider on bottom. Balance the silhouette.
 - SHOE MATCHING: Sneakers for casual/sporty, boots for fall/edgy, sandals for summer, heels/flats for dressy. The shoes set the tone.
