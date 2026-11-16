@@ -18,11 +18,14 @@ export default async function handler(req) {
     const today = new Date().toISOString().split('T')[0]
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
+    const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
     const itemSummaries = items.map(i => {
       let line = '[' + i.id + '] ' + i.name + ' (' + i.category
       if (i.accessoryType) line += '/' + i.accessoryType
       line += ', ' + i.color + ', ' + (i.style || 'Casual')
       if (i.seasons && i.seasons.length > 0) line += ', seasons: ' + i.seasons.join('/')
+      if (i.dateAdded && i.dateAdded >= oneMonthAgo) line += ', NEW ADDITION'
       if (i.lastWorn && i.lastWorn >= twoWeeksAgo) line += ', RECENTLY WORN'
       line += ')'
       return line
@@ -65,13 +68,23 @@ OUTFIT COMPLETENESS (NON-NEGOTIABLE for each day):
 - Accessories are optional extras, never substitutes for core pieces.
 - NEVER suggest an outfit missing shoes, or a top without bottoms.
 
+LAYERING RULES (VERY IMPORTANT):
+- Cardigans, sweaters, jackets, blazers, and any open-front or layering piece from Outerwear MUST be paired with a base layer top underneath (a t-shirt, tank, cami, blouse, etc. from the Tops category).
+- NEVER suggest a cardigan or sweater as the ONLY top. Always include something to wear under it.
+- If the wardrobe has a suitable undershirt, tee, or tank, include it in the outfit alongside the layering piece.
+- The only exception is a thick, closed crewneck/turtleneck sweater that is clearly worn alone as a top.
+
+NEW ADDITIONS:
+- Items marked NEW ADDITION were recently added to the wardrobe. Actively work them into the weekly plan! The user added them because they want to wear them.
+- Try to feature new items at least once during the week.
+
 WEEKLY PLANNING INTELLIGENCE:
 - VARIETY IS KEY: Don't repeat the same top, bottom, or shoes on consecutive days. Spread items across the week.
 - COLOR STORY: Create a cohesive weekly palette. Mix statement pieces with basics. Not every day needs to pop.
 - LIFESTYLE FIT: Weekdays can lean more polished/practical. Weekends can be more relaxed or fun.
 - WEATHER AWARE: Match layers and fabrics to the daily forecast. Heavier outfits for cold days, lighter for warm.
 - SEASON AWARE: If items have season tags, prefer items that match the current season.
-- RECENTLY WORN: Try to avoid items marked as RECENTLY WORN unless the wardrobe is small.
+- RECENTLY WORN: Items marked RECENTLY WORN should be deprioritized unless the wardrobe is small.
 - USE THE FULL WARDROBE: Don't just pick favorites. Dig into underused pieces.
 
 ACCURACY:
