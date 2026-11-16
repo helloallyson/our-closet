@@ -78,9 +78,16 @@ NEW ADDITIONS:
 - Items marked NEW ADDITION were recently added to the wardrobe. Actively work them into the weekly plan! The user added them because they want to wear them.
 - Try to feature new items at least once during the week.
 
+PATTERN AND COLOR MATCHING (VERY IMPORTANT):
+- NEVER pair two busy patterns together (polka dots + stripes, floral + plaid, etc.). One pattern max per outfit, with solids that complement it.
+- If a piece has a bold pattern, pair it with SOLID pieces in a color pulled from the pattern.
+- NO red + pink, orange + red, red + bright green, or neon + neon combos.
+- Safe formula: 1 statement/patterned piece + neutrals, OR 2 complementary colors + 1 neutral.
+- When in doubt, pair bold colors with neutrals (black, white, cream, gray, navy, tan, denim).
+
 WEEKLY PLANNING INTELLIGENCE:
 - VARIETY IS KEY: Don't repeat the same top, bottom, or shoes on consecutive days. Spread items across the week.
-- COLOR STORY: Create a cohesive weekly palette. Mix statement pieces with basics. Not every day needs to pop.
+- COLOR STORY: Create a cohesive weekly palette. Mix statement pieces with basics. Not every day needs to pop. Each outfit should be color-coordinated on its own.
 - LIFESTYLE FIT: Weekdays can lean more polished/practical. Weekends can be more relaxed or fun.
 - WEATHER AWARE: Match layers and fabrics to the daily forecast. Heavier outfits for cold days, lighter for warm.
 - SEASON AWARE: If items have season tags, prefer items that match the current season.
