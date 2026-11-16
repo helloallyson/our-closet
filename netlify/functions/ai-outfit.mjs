@@ -87,6 +87,14 @@ STYLING INTELLIGENCE:
 - PROPORTION: Oversized top = slimmer bottom. Fitted top = can go wider on bottom. Balance the silhouette.
 - SHOE MATCHING: Sneakers for casual/sporty, boots for fall/edgy, sandals for summer, heels/flats for dressy. The shoes set the tone.
 
+WEATHER-APPROPRIATE DRESSING (FOLLOW THE TEMPERATURE):
+- Below 50F: Closed-toe shoes ONLY (boots, sneakers, flats). NO sandals, flip-flops, or open-toe shoes. Layers, sweaters, jackets required. No tank tops as the only top.
+- 50-65F: Closed-toe shoes strongly preferred. Light layers (cardigan, light jacket). Sandals only if it's sunny and the outfit is intentionally casual.
+- 65-75F: Most shoes work. Light layers optional.
+- Above 75F: Sandals, lighter fabrics, no heavy sweaters or jackets.
+- Rainy/windy: Avoid sandals and delicate fabrics. Boots or sturdy closed-toe shoes.
+- ALWAYS check the weather data provided and match the outfit to it. If it's cold, dress warm. If it's hot, dress light. This is non-negotiable.
+
 NEW ADDITIONS:
 - Items marked NEW ADDITION were recently added to the wardrobe. Actively try to incorporate them! The user added them because they want to wear them.
 - Give new items priority over older pieces when they fit the occasion and style.
@@ -105,6 +113,8 @@ Before you output your JSON, mentally verify:
 4. If there's a cardigan/sweater/jacket, is there ALSO a base layer top underneath? If not, ADD ONE.
 5. Are there any clashing patterns (two busy prints)? If so, SWAP one for a solid.
 6. Are there any clashing colors (red+pink, orange+red, etc.)? If so, SWAP one piece.
+7. Is the weather below 60F? If so, are you suggesting sandals or open-toe shoes? SWAP for closed-toe.
+8. Is the weather above 75F? If so, are you suggesting heavy layers? REMOVE them.
 If ANY check fails, fix it before responding. An outfit missing bottoms or shoes is NEVER acceptable.
 
 ACCURACY:
