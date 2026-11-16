@@ -94,6 +94,16 @@ WEEKLY PLANNING INTELLIGENCE:
 - RECENTLY WORN: Items marked RECENTLY WORN should be deprioritized unless the wardrobe is small.
 - USE THE FULL WARDROBE: Don't just pick favorites. Dig into underused pieces.
 
+FINAL CHECKLIST (DO THIS FOR EVERY DAY BEFORE RESPONDING):
+Before outputting each day's outfit, verify:
+1. Does it have a Top (from Tops category)? If not, ADD ONE.
+2. Does it have a Bottom (from Bottoms category) OR a Dress? If not, ADD ONE.
+3. Does it have Shoes? If not, ADD SHOES.
+4. If there's a cardigan/sweater/jacket, is there ALSO a base layer top? If not, ADD ONE.
+5. Any clashing patterns (two busy prints)? SWAP one for a solid.
+6. Any clashing colors (red+pink, orange+red)? SWAP one piece.
+An outfit missing bottoms or shoes is NEVER acceptable. Fix before responding.
+
 ACCURACY:
 - Use exact item names and IDs from the wardrobe. Never invent items.
 - Double-check every itemIds array matches the items you describe.`
